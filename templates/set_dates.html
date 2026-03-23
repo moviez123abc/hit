@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-5">
+    <div class="card shadow-lg border-0 mx-auto" style="max-width: 450px; border-radius: 20px;">
+        <div class="card-header bg-primary text-white text-center py-3" style="border-radius: 20px 20px 0 0;">
+            <h5 class="mb-0">কালেকশন তারিখ সেট করুন</h5>
+            <small>{{ sheet.group_name }}</small>
+        </div>
+        <div class="card-body p-4">
+            <form method="POST">
+                {% for i in range(1, 5) %}
+                <div class="mb-3">
+                    <label class="form-label fw-bold">কিস্তি-{{ i }} এর তারিখ</label>
+                    <input type="text" name="date{{ i }}" class="form-control rounded-pill" 
+                           placeholder="উদাঃ ০৫/০৩" value="{{ sheet.manual_dates[i-1] if sheet.manual_dates else '' }}" required>
+                </div>
+                {% endfor %}
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-primary rounded-pill py-2 fw-bold">তারিখ নিশ্চিত করুন</button>
+                    <a href="{{ url_for('kisti_sheets_list') }}" class="btn btn-link text-muted mt-2">ফিরে যান</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

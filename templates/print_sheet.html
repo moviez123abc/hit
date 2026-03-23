@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <title>প্রিন্ট - {{ sheet.group_name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Hind Siliguri', sans-serif; font-size: 9px; color: black; background: white; margin: 0; padding: 0; }
+        @media print {
+            @page { size: A4 landscape; margin: 5mm; }
+            .no-print { display: none !important; }
+            body { -webkit-print-color-adjust: exact; }
+            .main-table th, .main-table td { border: 1px solid #000 !important; }
+        }
+        .main-table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+        .main-table th, .main-table td { border: 1px solid black; text-align: center; vertical-align: middle; padding: 2px !important; line-height: 1.1; }
+        .underline { border-bottom: 1px dotted black; display: inline-block; min-width: 80px; text-align: center; font-weight: bold; }
+        .v-text { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; font-size: 8px; padding: 4px 1px !important; height: 85px; }
+        .bg-gray { background-color: #f2f2f2 !important; font-weight: bold; }
+    </style>
+</head>
+<body onload="window.print()">
+
+    <div class="container-fluid py-1">
+        <div class="no-print d-flex justify-content-center gap-2 mb-2">
+            <button onclick="window.print()" class="btn btn-dark btn-sm px-4 shadow-sm">প্রিন্ট করুন</button>
+            <button onclick="window.history.back()" class="btn btn-outline-secondary btn-sm px-4">ফিরে যান</button>
+        </div>
+
+        <div class="text-center mb-2">
+            <h4 class="fw-bold mb-0" style="font-size: 18px;">হিফজুল ফুরক্বান ইসলামী ট্রেডার্স (এইচ আই টি/HIT)</h4>
+            <p class="mb-0">শাখা: <b>{{ sheet.branch or 'প্রধান শাখা' }}</b> | <span class="text-decoration-underline">আদায় শিট</span></p>
+        </div>
+
+        <div class="row mb-1" style="font-size: 10px;">
+            <div class="col-4">
+                দলের নামঃ <span class="underline">{{ sheet.group_name }}</span><br>
+                কোড নম্বরঃ <span class="underline">{{ sheet.group_code }}</span><br>
+                রেজিঃ নংঃ <span class="underline">{{ sheet.reg_no or '৫৩২৭/২০' }}</span>
+            </div>
+            <div class="col-4 text-center">
+                মাস: <span class="underline">{{ sheet.month }}</span> সাল: <span class="underline">{{ sheet.year }}</span><br>
+                গ্রাম: <span class="underline">{{ sheet.village }}</span>
+            </div>
+            <div class="col-4 text-end">
+                মাঠ সহকারীঃ <span class="underline">{{ sheet.field_assistant }}</span><br>
+                আদায়ের বারঃ <span class="underline">{{ sheet.collection_day }}</span>
+            </div>
+        </div>
+
+        <table class="main-table">
+            <thead>
+                <tr class="bg-gray">
+                    <th rowspan="2" class="v-text">ক্রঃ নং</th>
+                    <th rowspan="2" style="min-width: 150px;">সদস্যের নাম</th>
+                    <th rowspan="2" class="v-text">সদস্য নং</th>
+                    <th rowspan="2" class="v-text">হিসাব নং</th>
+                    <th colspan="6">উপকরণের বিবরণ</th>
+                    <th colspan="2">গত মাসের জের</th>
+                    <th colspan="5">নগদ আদায়ের তারিখ</th>
+                    <th rowspan="2" class="v-text">ফেরত তারিখ</th>
+                    <th rowspan="2" class="v-text">নগদ ফেরত</th>
+                    <th rowspan="2" class="v-text">অবশিষ্ট নগদ</th>
+                    <th colspan="5">মূল্য আদায়ের তারিখ</th>
+                    <th rowspan="2" class="v-text">মূল্য ছাড়</th>
+                    <th rowspan="2" class="v-text">অবশিষ্ট মূল্য</th>
+                    <th rowspan="2" class="v-text">ভর্তি/ফরম/বিবিধ</th>
+                </tr>
+                <tr class="bg-gray">
+                    <th class="v-text">উপকরণের নাম</th>
+                    <th class="v-text">বিতরণের তারিখ</th>
+                    <th class="v-text">মূল্য</th>
+                    <th class="v-text">সার্ভিস চার্জ</th>
+                    <th class="v-text">সার্ভিস চার্জ সহ মূল্য</th>
+                    <th class="v-text">প্রতি কিস্তি</th>
+                    <th class="v-text">নগদ</th>
+                    <th class="v-text">মূল্য</th>
+                    {% for date in col_dates[:4] %} <th style="width: 25px; font-size: 7px;">{{ date }}</th> {% endfor %}
+                    <th class="v-text">মোট নগদ</th>
+                    {% for date in col_dates[:4] %} <th style="width: 25px; font-size: 7px;">{{ date }}</th> {% endfor %}
+                    <th class="v-text">মোট মূল্য</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in customers %}
+                {% set col = c.collections if c.collections else {} %}
+                
+                {# নগদ আদায় কিস্তি ১-৪ যোগফল (Strict Float Conversion) #}
+                {% set ns = col.kisti_data if col.kisti_data else [0,0,0,0] %}
+                {% set n1 = ns[0]|default(0)|float %}
+                {% set n2 = ns[1]|default(0)|float %}
+                {% set n3 = ns[2]|default(0)|float %}
+                {% set n4 = ns[3]|default(0)|float %}
+                {% set total_n = n1 + n2 + n3 + n4 %}
+
+                {# মূল্য আদায় কিস্তি ১-৪ যোগফল #}
+                {% set ms = col.price_data if col.price_data else [0,0,0,0] %}
+                {% set m1 = ms[0]|default(0)|float %}
+                {% set m2 = ms[1]|default(0)|float %}
+                {% set m3 = ms[2]|default(0)|float %}
+                {% set m4 = ms[3]|default(0)|float %}
+                {% set total_m = m1 + m2 + m3 + m4 %}
+
+                {# অন্যান্য ভ্যালু #}
+                {% set r_cash = col.return_cash|default(0)|float %}
+                {% set discount = col.discount|default(0)|float %}
+
+                <tr>
+                    <td>{{ c.sl_no }}</td>
+                    <td class="text-start ps-2"><b>{{ c.customer_name }}</b></td>
+                    <td>{{ c.member_no or '' }}</td>
+                    <td>{{ c.acc_no }}</td>
+
+                    <td>{{ c.product_name or '' }}</td>
+                    <td>{{ c.dist_date or '' }}</td>
+                    <td>{{ c.price|int if c.price else '0' }}</td>
+                    <td>{{ c.profit|int if c.profit else '0' }}</td>
+                    <td class="fw-bold">{{ (c.price|default(0)|float + c.profit|default(0)|float)|int }}</td>
+                    <td>{{ c.per_kisti|int if c.per_kisti else '0' }}</td>
+
+                    <td>{{ col.pre_due_n|int if col.pre_due_n else '0' }}</td>
+                    <td>{{ col.pre_due_m|int if col.pre_due_m else '0' }}</td>
+
+                    <td>{{ n1|int if n1 > 0 else '' }}</td>
+                    <td>{{ n2|int if n2 > 0 else '' }}</td>
+                    <td>{{ n3|int if n3 > 0 else '' }}</td>
+                    <td>{{ n4|int if n4 > 0 else '' }}</td>
+                    <td class="bg-gray">{{ total_n|int if total_n > 0 else '0' }}</td> <td>{{ col.return_date or '' }}</td>
+                    <td>{{ r_cash|int if r_cash > 0 else '' }}</td>
+                    <td class="bg-gray fw-bold">{{ (total_n - r_cash)|int }}</td> <td>{{ m1|int if m1 > 0 else '' }}</td>
+                    <td>{{ m2|int if m2 > 0 else '' }}</td>
+                    <td>{{ m3|int if m3 > 0 else '' }}</td>
+                    <td>{{ m4|int if m4 > 0 else '' }}</td>
+                    <td class="bg-gray">{{ total_m|int if total_m > 0 else '0' }}</td> <td>{{ discount|int if discount > 0 else '' }}</td>
+                    <td class="bg-gray fw-bold">{{ (total_m - discount)|int }}</td> <td>{{ col.comment or '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+</body>
+</html>
