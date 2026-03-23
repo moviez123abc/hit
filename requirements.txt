@@ -1,0 +1,6 @@
+Flask
+pymongo
+dnspython
+pdfkit
+gunicorn
+python-dotenv
