@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}HIT Admin{% endblock %}</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root { --primary-color: #2563eb; --sidebar-bg: #0f172a; --bg-light: #f8fafc; --sidebar-width: 260px; }
+        body { font-family: 'Inter', 'Hind Siliguri', sans-serif; background-color: var(--bg-light); color: #1e293b; margin: 0; overflow-x: hidden; }
+        
+        /* Sidebar */
+        .sidebar { 
+            height: 100vh; 
+            background: var(--sidebar-bg); 
+            color: white; 
+            position: fixed; 
+            width: var(--sidebar-width); 
+            z-index: 1045; 
+            transition: all 0.3s ease;
+        }
+        .sidebar-brand { padding: 30px 20px; font-size: 24px; font-weight: 700; color: #3b82f6; text-align: center; border-bottom: 1px solid #1e293b; }
+        .nav-link { color: #94a3b8; padding: 12px 25px; font-weight: 500; transition: 0.3s; display: flex; align-items: center; }
+        .nav-link i { width: 25px; }
+        .nav-link:hover, .nav-link.active { color: white; background: #1e293b; border-left: 4px solid var(--primary-color); }
+        
+        /* Top Navbar for Mobile */
+        .top-navbar {
+            display: none;
+            background: white;
+            padding: 10px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            z-index: 1040;
+        }
+
+        /* Main Content */
+        .main-content { 
+            margin-left: var(--sidebar-width); 
+            padding: 30px; 
+            min-height: 100vh; 
+            transition: all 0.3s ease;
+        }
+
+        /* Mobile Responsive adjustments */
+        @media (max-width: 991.98px) {
+            .sidebar {
+                left: calc(-1 * var(--sidebar-width));
+            }
+            .sidebar.active {
+                left: 0;
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 20px 15px;
+            }
+            .top-navbar {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            }
+            /* Overlay when sidebar is open */
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 1044;
+            }
+            .sidebar-overlay.show { display: block; }
+        }
+
+        /* UI Elements */
+        .card-custom { background: white; border-radius: 16px; border: 1px solid #e2e8f0; transition: 0.3s; }
+        .btn-add { background: var(--primary-color); border: none; padding: 10px 20px; border-radius: 10px; font-weight: 600; color: white; }
+    </style>
+    {% block styles %}{% endblock %}
+</head>
+<body>
+
+<div class="sidebar-overlay" id="overlay"></div>
+
+<div class="top-navbar">
+    <button class="btn btn-dark btn-sm" id="sidebarToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    <div class="fw-bold text-primary">HIT <span class="text-dark">Admin</span></div>
+    <div></div> </div>
+
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-brand">HIT <span class="text-white">Admin</span></div>
+    <nav class="nav flex-column mt-4">
+        <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">
+            <i class="fas fa-th-large me-2"></i> ড্যাশবোর্ড
+        </a>
+        <a href="/kisti_sheets" class="nav-link {% if 'kisti' in request.path %}active{% endif %}">
+            <i class="fas fa-money-bill-wave me-2"></i> কিস্তি আদায়
+        </a>
+        <a href="/add_customer_page" class="nav-link {% if 'customer' in request.path %}active{% endif %}">
+            <i class="fas fa-user-plus me-2"></i> নতুন গ্রাহক
+        </a>
+        <a href="/manage_customers_page" class="nav-link {% if 'manage' in request.path %}active{% endif %}">
+            <i class="fas fa-users-cog me-2"></i> গ্রাহক ব্যবস্থাপনা
+        </a>
+    </nav>
+</div>
+
+<div class="main-content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show rounded-3" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const sidebar = document.getElementById('sidebar');
+    const toggleBtn = document.getElementById('sidebarToggle');
+    const overlay = document.getElementById('overlay');
+
+    if(toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('show');
+        });
+    }
+
+    if(overlay) {
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('show');
+        });
+    }
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
