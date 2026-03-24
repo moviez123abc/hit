@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-lg" style="border-radius: 20px;">
+                <div class="card-body p-5">
+                    <h3 class="fw-bold mb-4 text-center text-primary">গ্রাহক ও পণ্য তথ্য সংশোধন</h3>
+                    
+                    <form action="/update_customer/{{ c._id|string }}" method="POST">
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">সদস্যের নাম</label>
+                                <input type="text" name="name" value="{{ c.customer_name }}" class="form-control bg-light border-0 py-2">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">হিসাব নং</label>
+                                <input type="text" name="acc_no" value="{{ c.acc_no }}" class="form-control bg-light border-0 py-2">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold">উপকরণের নাম</label>
+                                <input type="text" name="product" value="{{ c.product_name or '' }}" class="form-control bg-light border-0 py-2">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">মোট মূল্য</label>
+                                <input type="number" step="any" name="price" value="{{ c.cost_price|default(0) }}" class="form-control bg-light border-0 py-2">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">সার্ভিস চার্জ</label>
+                                <input type="number" step="any" name="profit" value="{{ c.profit|default(0) }}" class="form-control bg-light border-0 py-2">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">প্রতি মূল্য</label>
+                                <input type="number" step="any" name="per_kisti" value="{{ c.per_kisti|default(0) }}" class="form-control bg-light border-0 py-2">
+                            </div>
+                        </div>
+
+                        <hr class="my-4 text-muted">
+
+                        <div class="bg-light p-4 rounded-4 shadow-sm border border-primary border-opacity-10">
+                            <h5 class="fw-bold text-primary mb-3"><i class="fas fa-cart-plus me-2"></i> অতিরিক্ত নতুন পণ্য যোগ করুন (ঐচ্ছিক)</h5>
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <input type="text" name="new_product" class="form-control border-white shadow-sm py-2" placeholder="নতুন উপকরণের নাম লিখুন">
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="number" step="any" name="new_price" class="form-control border-white shadow-sm py-2" placeholder="নতুন মূল্য">
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="number" step="any" name="new_profit" class="form-control border-white shadow-sm py-2" placeholder="নতুন সার্ভিস চার্জ">
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="number" step="any" name="new_per_kisti" class="form-control border-white shadow-sm py-2" placeholder="নতুন প্রতি মূল্য">
+                                </div>
+                                <div class="col-12">
+                                    <label class="small text-muted">নতুন বিতরণ তারিখ</label>
+                                    <input type="date" name="date" class="form-control border-white shadow-sm py-2">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-5 d-flex gap-3">
+                            <a href="/manage_customers_page" class="btn btn-light w-100 py-3 rounded-pill fw-bold">বাতিল করুন</a>
+                            <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow">
+                                <i class="fas fa-save me-2"></i> তথ্য সংরক্ষণ করুন
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

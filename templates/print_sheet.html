@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>আদায় শীট - {{ sheet.group_name }}</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- High-Fidelity Print Styling --- */
+        @media print {
+            @page { 
+                size: legal landscape; 
+                margin: 6mm 4mm 4mm 4mm; 
+            }
+            .no-print { display: none !important; }
+            
+            body { 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
+            }
+            
+            .main-table { 
+                border: 1.5pt solid #000 !important; 
+            }
+            
+            .main-table th, .main-table td { 
+                border: 0.5pt solid #000 !important; 
+                /* Prevents thin lines from disappearing in PDF generation */
+                box-shadow: inset 0 0 0 0.1pt #000 !important;
+            }
+
+            .bg-gray { background-color: #f2f2f2 !important; }
+        }
+        
+        body { 
+            font-family: 'Hind Siliguri', sans-serif; 
+            background-color: white; 
+            color: black; 
+            margin: 0; 
+            padding: 0;
+            font-size: 8.5px;
+            line-height: 1.2;
+        }
+
+        /* --- Professional Header --- */
+        .header-container { text-align: center; margin-bottom: 12px; }
+        .org-name { font-size: 26px; font-weight: 800; text-transform: uppercase; margin-bottom: 0px; letter-spacing: 0.5px; }
+        .org-address { font-size: 11.5px; font-weight: 500; margin-bottom: 4px; }
+        .branch-tag { font-size: 12px; font-weight: 600; margin-bottom: 8px; }
+        .report-title-box { 
+            border: 1.5px solid black; 
+            display: inline-block; 
+            padding: 2px 30px; 
+            font-weight: 700; 
+            font-size: 14px; 
+            border-radius: 50px; 
+            background-color: #fdfdfd !important;
+            margin-top: 5px;
+        }
+
+        /* --- Info Section Layout --- */
+        .info-grid { width: 100%; margin-bottom: 8px; border-collapse: collapse; }
+        .info-grid td { padding: 2px 4px; vertical-align: bottom; border: none !important; }
+        .label { font-weight: 600; white-space: nowrap; font-size: 9.5px; }
+        .field-content { 
+            border-bottom: 1px solid black; 
+            display: inline-block; 
+            text-align: center; 
+            font-weight: 700;
+            min-height: 14px;
+            padding: 0 5px;
+            font-size: 10px;
+        }
+
+        /* --- Table Aesthetics --- */
+        .main-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .main-table th { 
+            background-color: #f2f2f2 !important; 
+            font-weight: 700; 
+            text-align: center; 
+            font-size: 8.5px;
+            border: 1px solid black;
+            padding: 3px 1px !important;
+        }
+        .main-table td { 
+            border: 1px solid black; 
+            text-align: center !important; 
+            vertical-align: middle !important; 
+            padding: 1px !important;
+            height: 32px; 
+            font-size: 8px;
+        }
+
+        /* Vertical Text Orientation */
+        .v-text { 
+            writing-mode: vertical-rl; 
+            transform: rotate(180deg); 
+            white-space: nowrap; 
+            height: 100px; 
+            line-height: 0.95;
+            display: inline-block;
+        }
+
+        .fw-bold { font-weight: 700 !important; }
+        .name-cell { text-align: left !important; padding-left: 4px !important; font-weight: 700; width: 140px !important; }
+        .bg-gray { background-color: #f2f2f2 !important; }
+
+        /* --- Signature Section --- */
+        .footer-container { margin-top: 30px; display: flex; justify-content: space-between; padding: 0 20px; }
+        .sig-line { border-top: 1.2px solid black; width: 180px; text-align: center; padding-top: 5px; font-weight: 700; font-size: 10px; }
+    </style>
+</head>
+<body onload="window.print()">
+
+    <div class="container-fluid py-2">
+        <div class="no-print d-flex justify-content-center gap-2 mb-4">
+            <button onclick="window.print()" class="btn btn-dark btn-sm px-4 shadow-sm">প্রিন্ট করুন (Print)</button>
+            <button onclick="window.history.back()" class="btn btn-outline-secondary btn-sm px-4">ফিরে যান</button>
+        </div>
+
+        <div class="header-container">
+            <div class="org-name">হিলফুল ফুজুল ইসলামী ট্রেডার্স (এইচ আই টি/HIT)</div>
+            <div class="org-address">প্রধান কার্যালয়: কুতুবপুর বাজার, সারিয়াকান্দি, বগুড়া।</div>
+            <div class="branch-tag">শাখা : <span class="field-content" style="min-width: 120px;">{{ sheet.branch or 'V-2' }}</span></div>
+            <div class="report-title-box">দৈনিক / সাপ্তাহিক / মাসিক আদায় শীট</div>
+        </div>
+
+        <table class="info-grid">
+            <tr>
+                <td style="width: 25%;">
+                    <span class="label">দলের নাম :</span> <span class="field-content" style="width: calc(100% - 70px);">{{ sheet.group_name }}</span><br>
+                    <span class="label">কোড নম্বর :</span> <span class="field-content" style="width: calc(100% - 70px);">{{ sheet.code_no }}</span><br>
+                    <span class="label">রেজি নং :</span> <span class="field-content" style="width: calc(100% - 70px);">{{ sheet.reg_no or '' }}</span>
+                </td>
+                <td style="width: 50%; text-align: center;">
+                    <span class="label">মাসঃ</span> <span class="field-content" style="min-width: 80px;">{{ sheet.month or '' }}</span> 
+                    <span class="label">সনঃ</span> <span class="field-content" style="min-width: 50px;">{{ sheet.year or '২০২৬' }}</span> 
+                    <span class="label">গ্রামঃ</span> <span class="field-content" style="min-width: 100px;">{{ sheet.village }}</span><br>
+                    <span class="label">ডাকঘরঃ</span> <span class="field-content" style="min-width: 80px;">{{ sheet.post_office }}</span> 
+                    <span class="label">ইউনিয়নঃ</span> <span class="field-content" style="min-width: 80px;">{{ sheet.union }}</span> 
+                    <span class="label">উপজেলাঃ</span> <span class="field-content" style="min-width: 80px;">{{ sheet.upazila }}</span> 
+                    <span class="label">জেলাঃ</span> <span class="field-content" style="min-width: 60px;">বগুড়া</span>
+                </td>
+                <td style="width: 25%; text-align: right;">
+                    <span class="label">মাঠ সহকারী :</span> <span class="field-content" style="width: 120px;">{{ sheet.assistant_name }}</span><br>
+                    <span class="label">আদায়ের বার :</span> <span class="field-content" style="width: 120px;">{{ sheet.collection_day }}</span><br>
+                    <span class="label">সভানেত্রী :</span> <span class="field-content" style="width: 120px;">{{ sheet.leader_name or '' }}</span>
+                </td>
+            </tr>
+        </table>
+
+        <table class="main-table">
+            <thead>
+                <tr>
+                    <th rowspan="2" style="width: 30px;">ক্রঃ<br>নং</th>
+                    <th rowspan="2" class="name-cell" style="text-align: center !important;">সদস্যের নাম</th>
+                    <th rowspan="2"><span class="v-text">দলভুক্তির তারিখ</span></th>
+                    <th rowspan="2"><span class="v-text">হিসাব নং</span></th>
+                    <th rowspan="2"><span class="v-text">পরিশোধ মাস</span></th>
+                    <th colspan="6">উপকরণের বিবরণ</th>
+                    <th colspan="2">গত মাসের জের</th>
+                    <th colspan="9">নগদ আদায়</th>
+                    <th colspan="9">মূল্য আদায়</th>
+                    <th rowspan="2"><span class="v-text">ভর্তি/ফরম/বিবিধ</span></th>
+                </tr>
+                <tr>
+                    <th><span class="v-text">উপকরণের নাম</span></th>
+                    <th><span class="v-text">বিতরণ তারিখ</span></th>
+                    <th><span class="v-text">মূল্য</span></th>
+                    <th><span class="v-text">সার্ভিস চার্জ</span></th>
+                    <th><span class="v-text">চার্জ সহ মূল্য</span></th>
+                    <th><span class="v-text">প্রতি মূল্য</span></th>
+                    
+                    <th><span class="v-text">মোট নগদ</span></th>
+                    <th><span class="v-text">মোট মূল্য</span></th>
+
+                    {% for date in col_dates[:5] %} <th style="width: 30px; font-size: 7.5px;">{{ date }}</th> {% endfor %}
+                    <th class="bg-gray"><span class="v-text">মোট নগদ আদায়</span></th>
+                    <th><span class="v-text">ফেরতের তাং</span></th>
+                    <th><span class="v-text">নগদ ফেরত</span></th>
+                    <th><span class="v-text">অবশিষ্ট নগদ স্থিতি</span></th>
+
+                    {% for date in col_dates[:5] %} <th style="width: 30px; font-size: 7.5px;">{{ date }}</th> {% endfor %}
+                    <th class="bg-gray"><span class="v-text">মোট মূল্য আদায়</span></th>
+                    <th><span class="v-text">ছাড় তারিখ</span></th>
+                    <th><span class="v-text">মূল্য ছাড়</span></th>
+                    <th><span class="v-text">অবশিষ্ট মূল্য স্থিতি</span></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in customers %}
+                {% set col = c.collections if c.collections is mapping else {} %}
+                {% set total_val = (c.cost_price|default(0)|float + c.profit|default(0)|float) %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td class="name-cell">{{ c.customer_name }}</td>
+                    <td>{{ c.join_date or '' }}</td>
+                    <td>{{ c.acc_no }}</td>
+                    <td>{{ c.duration_months or '' }}</td>
+                    <td>{{ c.product_name or '' }}</td>
+                    <td>{{ c.delivery_date or '' }}</td>
+                    <td>{{ c.cost_price or '' }}</td>
+                    <td>{{ c.profit or '' }}</td>
+                    <td class="fw-bold">{{ total_val|int if total_val > 0 else '' }}</td>
+                    <td>{{ c.per_kisti or '' }}</td>
+                    
+                    <td>{{ col.pre_due_n or '0' }}</td>
+                    <td>{{ col.pre_due_m or '0' }}</td>
+
+                    {% set kisti_list = col.kisti_data if col.kisti_data else [] %}
+                    {% for i in range(5) %}
+                        <td>{{ kisti_list[i] if kisti_list|length > i and kisti_list[i]|float > 0 else '' }}</td>
+                    {% endfor %}
+                    <td class="bg-gray fw-bold">{{ kisti_list|sum|int if kisti_list|sum > 0 else '' }}</td>
+                    <td>{{ col.return_date or '' }}</td>
+                    <td>{{ col.return_cash or '' }}</td>
+                    <td class="fw-bold">{{ (col.pre_due_n|default(0)|float - (kisti_list|sum - col.return_cash|default(0)|float))|int }}</td>
+
+                    {% set price_list = col.price_data if col.price_data else [] %}
+                    {% for i in range(5) %}
+                        <td>{{ price_list[i] if price_list|length > i and price_list[i]|float > 0 else '' }}</td>
+                    {% endfor %}
+                    <td class="bg-gray fw-bold">{{ price_list|sum|int if price_list|sum > 0 else '' }}</td>
+                    <td>{{ col.discount_date or '' }}</td>
+                    <td>{{ col.discount or '' }}</td>
+                    <td class="fw-bold">{{ ((col.pre_due_m|default(0)|float + total_val) - (price_list|sum + col.discount|default(0)|float))|int }}</td>
+                    
+                    <td style="font-size: 7px;">{{ col.comment or '' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+
+    </div>
+
+</body>
+</html>
