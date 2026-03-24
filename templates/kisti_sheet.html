@@ -41,7 +41,7 @@
                             <th rowspan="2" class="align-middle">হিসাব নং</th>
                             <th colspan="6" class="bg-indigo text-white">উপকরণের বিবরণ</th>
                             <th colspan="2" class="bg-secondary">গত মাসের জের</th>
-                            <th colspan="6" class="bg-primary text-white">নগদ আদায় (কিস্তি)</th>
+                            <th colspan="6" class="bg-primary text-white">নগদ আদায়</th>
                             <th rowspan="2" class="align-middle">নগদ ফেরত তারিখ</th>
                             <th rowspan="2" class="align-middle">নগদ ফেরত</th>
                             <th rowspan="2" class="align-middle bg-danger text-white fw-bold">অবশিষ্ট নগদ স্থিতি</th>
@@ -49,25 +49,25 @@
                             <th rowspan="2" class="align-middle bg-warning text-dark">মূল্য ছাড় তারিখ</th>
                             <th rowspan="2" class="align-middle bg-warning text-dark">মূল্য ছাড়</th>
                             <th rowspan="2" class="align-middle bg-info text-dark fw-bold">অবশিষ্ট মূল্য স্থিতি</th>
-                            <th rowspan="2" class="align-middle">মন্তব্য</th>
+                            <th rowspan="2" class="align-middle">ভর্তি/ফরম/বিবিধ</th>
                         </tr>
                         <tr>
-                            <th class="bg-light text-dark">নাম</th>
+                            <th class="bg-light text-dark">উপকরণের নাম</th>
                             <th class="bg-light text-dark">বিতরণ তারিখ</th>
                             <th class="bg-light text-dark">মূল্য</th>
-                            <th class="bg-light text-dark">মুনাফা</th>
+                            <th class="bg-light text-dark">সার্ভিস চার্জ</th>
+                            <th class="bg-light text-dark">সার্ভিস চার্জ সহ মূল্য</th>
+                            <th class="bg-light text-dark">প্রতি মূল্য</th>
+                            <th class="bg-light text-dark">মোট নগদ</th>
                             <th class="bg-light text-dark">মোট মূল্য</th>
-                            <th class="bg-light text-dark">প্রতি কিস্তি</th>
-                            <th class="bg-light text-dark">নগদ জের</th>
-                            <th class="bg-light text-dark">মূল্য জের</th>
                             {% for date in col_dates[:5] %} 
                                 <th class="bg-light text-dark" style="min-width: 80px;">{{ date }}</th> 
                             {% endfor %}
-                            <th class="bg-light text-dark fw-bold">মোট নগদ</th>
+                            <th class="bg-light text-dark fw-bold">মোট নগদ আদায়</th>
                             {% for date in col_dates[:5] %} 
                                 <th class="bg-light text-dark" style="min-width: 80px;">{{ date }}</th> 
                             {% endfor %}
-                            <th class="bg-light text-dark fw-bold">মোট মূল্য</th>
+                            <th class="bg-light text-dark fw-bold">মোট মূল্য আদায়</th>
                         </tr>
                     </thead>
                     <tbody>
