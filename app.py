@@ -147,16 +147,25 @@ def manage_users():
 
     return render_template('manage_users.html', users=users_list, all_sheets=all_sheets)
 
-# ইউজার ডিলিট করার রুট (প্রয়োজন হলে)
 @app.route('/delete_user/<username>')
 @login_required
 def delete_user(username):
-    if session.get('role') == 'admin' and username != session.get('user'):
-        db.Users.delete_one({"username": username})
-        flash(f"ইউজার '{username}' মুছে ফেলা হয়েছে।", "info")
+    # অ্যাডমিন কি না এবং নিজের ইউজারনেম ডিলিট করছে কি না চেক
+    if session.get('role') == 'admin':
+        if username == session.get('user'):
+            flash("অ্যাডমিন নিজেকে ডিলিট করতে পারবে না।", "danger")
+        else:
+            # কালেকশনের নাম 'Users' না 'users' সেটি নিশ্চিত হয়ে নিন (কেস সেনসিটিভ)
+            result = db.Users.delete_one({"username": username})
+            if result.deleted_count > 0:
+                flash(f"ইউজার '{username}' মুছে ফেলা হয়েছে।", "info")
+            else:
+                flash("ইউজারটি খুঁজে পাওয়া যায়নি।", "warning")
     else:
-        flash("অ্যাডমিন নিজেকে ডিলিট করতে পারবে না বা অনুমতি নেই।", "danger")
+        flash("আপনার অনুমতি নেই।", "danger")
+        
     return redirect(url_for('manage_users'))
+
 
 @app.route('/save_data_pending', methods=['POST'])
 def save_data_pending():
