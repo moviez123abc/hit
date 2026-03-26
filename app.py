@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, make_response, session
 from pymongo import MongoClient
 from bson.objectid import ObjectId
+from bson import ObjectId
 import os
 import pdfkit 
 from datetime import datetime
@@ -26,7 +27,7 @@ def create_default_admin():
             "username": "1",
             "password": "1",
             "role": "admin",
-            "assigned_sheets": [] # অ্যাডমিনের জন্য সব শিট ওপেন থাকবে লজিকে
+            "assigned_sheets": [] # অ্যাডমিনের জন্য সব শীট ওপেন থাকবে লজিকে
         })
         print("Default Admin Created: Username: 1, Password: 1")
 
@@ -67,10 +68,10 @@ def logout():
 @login_required
 def index():
     if session['role'] == 'admin':
-        # অ্যাডমিন সব শিট দেখবে
+        # অ্যাডমিন সব শীট দেখবে
         sheets = list(db.Sheets.find())
     else:
-        # এমপ্লয়ি শুধু তার বরাদ্দকৃত শিট দেখবে
+        # এমপ্লয়ি শুধু তার বরাদ্দকৃত শীট দেখবে
         user = db.Users.find_one({"username": session['user']})
         assigned_ids = [ObjectId(sid) for sid in user.get('assigned_sheets', [])]
         sheets = list(db.Sheets.find({"_id": {"$in": assigned_ids}}))
@@ -88,7 +89,7 @@ def add_employee():
             "username": request.form.get('username'),
             "password": request.form.get('password'),
             "role": "employee",
-            "assigned_sheets": request.form.getlist('sheets') # মাল্টিপল শিট সিলেক্ট
+            "assigned_sheets": request.form.getlist('sheets') # মাল্টিপল শীট সিলেক্ট
         }
         db.Users.insert_one(emp_data)
         flash("নতুন এমপ্লয়ি যোগ করা হয়েছে", "success")
@@ -116,7 +117,7 @@ def manage_users():
             existing_user = db.Users.find_one({"username": username})
 
             if existing_user:
-                # ইউজার থাকলে তার পাসওয়ার্ড এবং শিট আপডেট হবে
+                # ইউজার থাকলে তার পাসওয়ার্ড এবং শীট আপডেট হবে
                 db.Users.update_one(
                     {"username": username},
                     {"$set": {
@@ -142,11 +143,12 @@ def manage_users():
     # ১. সব ইউজার লিস্ট (অ্যাডমিন ছাড়া বাকিদের বা সবাইকে দেখাতে পারেন)
     users_list = list(db.Users.find())
     
-    # ২. সব শিট লিস্ট (ড্রপডাউনে দেখানোর জন্য)
+    # ২. সব শীট লিস্ট (ড্রপডাউনে দেখানোর জন্য)
     all_sheets = list(db.Sheets.find())
 
     return render_template('manage_users.html', users=users_list, all_sheets=all_sheets)
 
+# ইউজার ডিলিট করার রুট (প্রয়োজন হলে)
 @app.route('/delete_user/<username>')
 @login_required
 def delete_user(username):
@@ -165,7 +167,6 @@ def delete_user(username):
         flash("আপনার অনুমতি নেই।", "danger")
         
     return redirect(url_for('manage_users'))
-
 
 @app.route('/save_data_pending', methods=['POST'])
 def save_data_pending():
@@ -208,7 +209,7 @@ def update_user(user_id):
         
     new_username = request.form.get('username')
     new_password = request.form.get('password')
-    assigned_sheets = request.form.getlist('assigned_sheets') # একাধিক শিট নেওয়ার জন্য getlist
+    assigned_sheets = request.form.getlist('assigned_sheets') # একাধিক শীট নেওয়ার জন্য getlist
     
     update_data = {
         "username": new_username,
@@ -376,10 +377,10 @@ def create_sheet():
             return redirect(url_for('index'))
 
         sheets_col.insert_one(sheet_data)
-        flash("নতুন কালেকশন শিট সফলভাবে তৈরি হয়েছে।", "success")
+        flash("নতুন কালেকশন শীট সফলভাবে তৈরি হয়েছে।", "success")
         return redirect(url_for('index'))
     except Exception as e:
-        flash(f"শিট তৈরি করতে সমস্যা হয়েছে: {e}", "danger")
+        flash(f"শীট তৈরি করতে সমস্যা হয়েছে: {e}", "danger")
         return redirect(url_for('index'))
 
 @app.route('/sheet/<sheet_id>')
@@ -387,13 +388,13 @@ def view_sheet(sheet_id):
     try:
         sheet = sheets_col.find_one({"_id": ObjectId(sheet_id)})
         if not sheet:
-            flash("দুঃখিত, শিটটি খুঁজে পাওয়া যায়নি।", "warning")
+            flash("দুঃখিত, শীটটি খুঁজে পাওয়া যায়নি।", "warning")
             return redirect(url_for('index'))
             
         customers = list(customers_col.find({"sheet_id": sheet_id}).sort("sl_no", 1))
         return render_template('sheet_details.html', sheet=sheet, customers=customers)
     except Exception as e:
-        flash(f"শিট লোড করতে সমস্যা: {e}", "danger")
+        flash(f"শীট লোড করতে সমস্যা: {e}", "danger")
         return redirect(url_for('index'))
 
 # --- পিডিএফ তৈরির নতুন রুট (এটি মিসিং ছিল) ---
@@ -429,7 +430,7 @@ def add_customer_page():
         user_name = session.get('user')
         
         if user_role == 'admin':
-            # অ্যাডমিন সব শিট দেখতে পাবে
+            # অ্যাডমিন সব শীট দেখতে পাবে
             all_sheets = list(sheets_col.find().sort("group_name", 1))
         else:
             # এমপ্লয়ির ডাটা রিট্রিভ করা
@@ -439,9 +440,9 @@ def add_customer_page():
             assigned_list = user_data.get('assigned_sheets', [])
             
             if not assigned_list:
-                # যদি কোনো শিট অ্যাসাইন করা না থাকে
+                # যদি কোনো শীট অ্যাসাইন করা না থাকে
                 all_sheets = []
-                flash("আপনার জন্য কোনো শিট বরাদ্দ করা হয়নি। অ্যাডমিনের সাথে যোগাযোগ করুন।", "warning")
+                flash("আপনার জন্য কোনো শীট বরাদ্দ করা হয়নি। অ্যাডমিনের সাথে যোগাযোগ করুন।", "warning")
             else:
                 # স্ট্রিং আইডিগুলোকে ObjectId তে রূপান্তর করা
                 assigned_ids = [ObjectId(sid) for sid in assigned_list]
@@ -513,16 +514,16 @@ def kisti_sheets_list():
         user_name = session.get('user')
 
         if user_role == 'admin':
-            # অ্যাডমিন সব শিট দেখতে পাবে
+            # অ্যাডমিন সব শীট দেখতে পাবে
             all_sheets = list(sheets_col.find().sort("_id", -1))
         else:
             # এমপ্লয়ির তথ্য ডাটাবেস থেকে খুঁজে বের করা
             user_data = users_col.find_one({"username": user_name})
             
-            # এমপ্লয়ির সাথে যুক্ত শিট আইডিগুলোর লিস্ট (String থেকে ObjectId তে রূপান্তর)
+            # এমপ্লয়ির সাথে যুক্ত শীট আইডিগুলোর লিস্ট (String থেকে ObjectId তে রূপান্তর)
             assigned_sheet_ids = [ObjectId(sid) for sid in user_data.get('assigned_sheets', [])]
             
-            # শুধুমাত্র assigned শিটগুলো ফিল্টার করে আনা
+            # শুধুমাত্র assigned শীটগুলো ফিল্টার করে আনা
             all_sheets = list(sheets_col.find({"_id": {"$in": assigned_sheet_ids}}).sort("_id", -1))
 
         return render_template('kisti_sheets_select.html', sheets=all_sheets)
@@ -534,11 +535,11 @@ def kisti_sheets_list():
 @app.route('/kisti_sheet/<sheet_id>')
 def view_kisti_sheet(sheet_id):
     try:
-        # ১. শিট ডাটা নিয়ে আসা (এখানে ObjectId ই লাগবে)
+        # ১. শীট ডাটা নিয়ে আসা (এখানে ObjectId ই লাগবে)
         sheet = sheets_col.find_one({"_id": ObjectId(sheet_id)})
         
         if not sheet:
-            flash("শিটটি পাওয়া যায়নি!", "warning")
+            flash("শীটটি পাওয়া যায়নি!", "warning")
             return redirect(url_for('kisti_sheets_list'))
 
         # ২. কাস্টমার ডাটা খোঁজা (String অথবা ObjectId দুই ভাবেই চেক করা হচ্ছে)
@@ -559,7 +560,7 @@ def view_kisti_sheet(sheet_id):
         
     except Exception as e:
         print(f"Error in view_kisti_sheet: {e}") # কনসোলে আসল এরর দেখার জন্য
-        flash(f"শিট লোড করতে সমস্যা হয়েছে!", "danger")
+        flash(f"শীট লোড করতে সমস্যা হয়েছে!", "danger")
         return redirect(url_for('kisti_sheets_list'))
     
 @app.route('/set_dates/<sheet_id>', methods=['GET', 'POST'])
@@ -598,7 +599,7 @@ def set_collection_dates(sheet_id):
             if result.modified_count > 0 or result.matched_count > 0:
                 flash("মাস এবং ৫টি তারিখ সফলভাবে আপডেট করা হয়েছে!", "success")
             else:
-                flash("কোনো পরিবর্তন করা হয়নি বা শিটটি পাওয়া যায়নি।", "warning")
+                flash("কোনো পরিবর্তন করা হয়নি বা শীটটি পাওয়া যায়নি।", "warning")
                 
             return redirect(url_for('view_kisti_sheet', sheet_id=sheet_id))
         
@@ -618,7 +619,7 @@ def save_kisti(sheet_id):
         user_role = session.get('role')
         user_name = session.get('user')
         
-        # শিটের অধীনে থাকা সব কাস্টমার নিয়ে আসা
+        # শীটের অধীনে থাকা সব কাস্টমার নিয়ে আসা
         customers = list(customers_col.find({"sheet_id": sheet_id}))
         
         all_updates = [] # এমপ্লয়িদের জন্য সব ডাটা এখানে জমা হবে
@@ -676,7 +677,7 @@ def save_kisti(sheet_id):
                 })
 
         if user_role == 'admin':
-            flash("শিট সরাসরি আপডেট করা হয়েছে!", "success")
+            flash("শীট সরাসরি আপডেট করা হয়েছে!", "success")
         else:
             if all_updates:
                 # সব আপডেট একসাথে পেন্ডিং কালেকশনে সেভ করা
@@ -689,7 +690,7 @@ def save_kisti(sheet_id):
         print(f"Error saving kisti: {e}")
         flash(f"তথ্য সংরক্ষণ করতে সমস্যা হয়েছে: {str(e)}", "danger")
         
-    return redirect(url_for('kisti_sheets_list')) # আপনার কিস্তি শিট লিস্ট পেজে ফেরত যাবে
+    return redirect(url_for('kisti_sheets_list')) # আপনার কিস্তি শীট লিস্ট পেজে ফেরত যাবে
 
 @app.route('/print_kisti/<sheet_id>')
 def print_kisti_sheet(sheet_id):
@@ -742,37 +743,23 @@ def print_kisti_sheet(sheet_id):
         print(f"Print Error: {e}")
         return f"প্রিন্ট করতে সমস্যা হয়েছে: {str(e)}"
 
+from bson import ObjectId
+
 @app.route('/delete_sheet/<id>')
 def delete_sheet(id):
     try:
-        # আইডিটি অবজেক্ট আইডি কি না চেক করা
-        if ObjectId.is_valid(id):
-            obj_id = ObjectId(id)
-        else:
-            obj_id = id
-
-        # ১. শিটটি ডিলিট করার চেষ্টা করা (কালেকশন নাম 'Sheets' নিশ্চিত করুন)
-        result = db.Sheets.delete_one({"_id": obj_id})
+        # স্ট্রিং আইডি-কে ObjectId তে রূপান্তর করা হচ্ছে
+        query_id = ObjectId(id) if ObjectId.is_valid(id) else id
+        
+        # ডাটাবেসে কুয়েরি করার সময় query_id ব্যবহার করুন
+        result = db.sheets.delete_one({"_id": query_id})
         
         if result.deleted_count > 0:
-            # ২. ওই শিটের সাথে যুক্ত সকল কাস্টমার ডাটা ডিলিট করা
-            # এখানে 'sheet_id' ফিল্ডে ডাটা যেভাবে সেভ আছে সে অনুযায়ী ডিলিট হবে
-            db.customers.delete_many({
-                "$or": [
-                    {"sheet_id": id},      # স্ট্রিং হিসেবে থাকলে
-                    {"sheet_id": obj_id}   # অবজেক্ট আইডি হিসেবে থাকলে
-                ]
-            })
-            
-            flash('শিট এবং এর সাথে যুক্ত সকল তথ্য সফলভাবে মুছে ফেলা হয়েছে!', 'success')
+            flash('সফলভাবে ডিলিট হয়েছে', 'success')
         else:
-            print(f"Delete failed! No document found with ID: {id}")
-            flash('দুঃখিত, ডাটাবেসে এই শিটটি খুঁজে পাওয়া যায়নি।', 'warning')
-            
+            flash('শীটটি খুঁজে পাওয়া যায়নি (ID Mismatch)', 'danger')
     except Exception as e:
-        print(f"Error occurred during delete: {e}")
-        flash(f'কারিগরি ত্রুটি: {str(e)}', 'danger')
-        
+        flash(str(e), 'danger')
     return redirect(url_for('index'))
 
 @app.route('/manage_customers_page')
@@ -837,7 +824,7 @@ def update_customer(cust_id):
         # ফর্ম থেকে ডাটা নেওয়া
         name = request.form.get('name')
         acc_no = request.form.get('acc_no')
-        sheet_id = request.form.get('sheet_id') # এখান থেকে শিট আইডি আসছে
+        sheet_id = request.form.get('sheet_id') # এখান থেকে শীট আইডি আসছে
 
         # যদি কোনো কারণে ফর্ম থেকে sheet_id না আসে, 
         # তবে ডাটাবেস থেকে বর্তমান আইডিটি ধরে রাখা ভালো
@@ -870,18 +857,18 @@ def update_customer(cust_id):
 @app.route('/sheet_data')
 def sheet_data():
     try:
-        # ১. সঠিক কালেকশন থেকে সব শিট নিয়ে আসা (বড় হাতের Sheets_col ব্যবহার করে)
+        # ১. সঠিক কালেকশন থেকে সব শীট নিয়ে আসা (বড় হাতের Sheets_col ব্যবহার করে)
         all_sheets = list(sheets_col.find({}))
         summary_list = []
 
         for sheet in all_sheets:
             sheet_id_str = str(sheet['_id'])
             
-            # ২. কাস্টমার কালেকশন থেকে এই শিটের সকল মেম্বার খুঁজে বের করা
+            # ২. কাস্টমার কালেকশন থেকে এই শীটের সকল মেম্বার খুঁজে বের করা
             # আপনার কোড অনুযায়ী sheet_id এখানে স্ট্রিং হিসেবে সেভ হয়
             customers = list(customers_col.find({"sheet_id": sheet_id_str}))
             
-            # মেম্বার না থাকলে এই শিটটি সামারিতে দেখানোর দরকার নেই অথবা ০ দেখাবে
+            # মেম্বার না থাকলে এই শীটটি সামারিতে দেখানোর দরকার নেই অথবা ০ দেখাবে
             t_val, t_cash, t_rem_n, t_rem_m = 0, 0, 0, 0
             
             for c in customers:
@@ -971,6 +958,44 @@ def print_summary():
         return render_template('print_summary_final.html', summary=summary_list, now=datetime.now())
     except Exception as e:
         return f"Error: {str(e)}"
+
+
+from bson import ObjectId  # এটি ফাইলের উপরে ইম্পোর্ট করা থাকতে হবে
+
+@app.route('/update_sheet/<id>', methods=['POST'])
+@login_required
+def update_sheet(id):
+    try:
+        # স্ট্রিং আইডি-কে ObjectId তে রূপান্তর করা হচ্ছে
+        query_id = ObjectId(id) if ObjectId.is_valid(id) else id
+        
+        updated_data = {
+            "group_name": request.form.get('group_name'),
+            "code_no": request.form.get('code_no'),
+            "reg_no": request.form.get('reg_no'),
+            "branch": request.form.get('branch'),
+            "month": request.form.get('month'),
+            "year": request.form.get('year'),
+            "village": request.form.get('village'),
+            "post_office": request.form.get('post_office'),
+            "union": request.form.get('union'),
+            "upazila": request.form.get('upazila'),
+            "district": request.form.get('district'),
+            "collection_day": request.form.get('collection_day'),
+            "leader_name": request.form.get('leader_name')
+        }
+
+        result = db.sheets.update_one({"_id": query_id}, {"$set": updated_data})
+
+        if result.matched_count > 0:
+            flash('তথ্য সফলভাবে আপডেট করা হয়েছে!', 'success')
+        else:
+            flash('শীটটি খুঁজে পাওয়া যায়নি (ID Mismatch)।', 'danger') # এখানে সমস্যা হচ্ছিল
+            
+    except Exception as e:
+        flash(f'ত্রুটি: {str(e)}', 'danger')
+        
+    return redirect(url_for('index'))
 
 @app.errorhandler(404)
 def page_not_found(e):
