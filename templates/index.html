@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-primary">স্বাগতম, {{ session['user'] }}</h3>
+            <span class="badge bg-info text-dark">রোল: {{ session['role']|upper }}</span>
+        </div>
+        <div>
+            {% if session['role'] == 'admin' %}
+            <a href="{{ url_for('manage_users') }}" class="btn btn-outline-primary me-2 shadow-sm">
+                <i class="fas fa-users-cog"></i> ইউজার ম্যানেজমেন্ট
+            </a>
+            {% endif %}
+            <a href="{{ url_for('logout') }}" class="btn btn-danger shadow-sm">লগআউট</a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <h4 class="mb-2">আপনার বরাদ্দকৃত শিটসমূহ:</h4>
+        {% for s in sheets %}
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm" style="border-radius: 15px;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-primary text-white rounded-circle p-3 me-3">
+                            <i class="fas fa-file-invoice fa-lg"></i>
+                        </div>
+                        <h5 class="card-title mb-0">{{ s.group_name }}</h5>
+                    </div>
+                    <p class="text-muted small mb-1">কোড: {{ s.code_no }}</p>
+                    <p class="text-muted small">এলাকা: {{ s.village }}</p>
+                    <a href="{{ url_for('view_kisti_sheet', sheet_id=s._id|string) }}" class="btn btn-primary w-100 rounded-pill">শিট ওপেন করুন</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
