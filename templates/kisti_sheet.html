@@ -1,0 +1,281 @@
+{% extends 'base.html' %}
+
+{% block title %}কালেকশন শীট | {{ sheet.group_name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4" style="background-color: #f1f5f9;">
+    <div class="card shadow-sm border-0 mb-4" style="border-radius: 15px; border-left: 5px solid #6366f1;">
+        <div class="card-body p-4 d-flex justify-content-between align-items-center bg-white rounded-3">
+            <div>
+                <h3 class="fw-bold text-dark mb-1">
+                    <i class="fas fa-file-invoice-dollar me-2 text-primary"></i>
+                    নগদ ও মূল্য আদায়: <span class="text-primary">{{ sheet.group_name }}</span>
+                </h3>
+                <p class="text-muted mb-0 small">
+                    <i class="fas fa-barcode me-1"></i> কোড: <b>{{ sheet.code_no or 'N/A' }}</b> | 
+                    <i class="fas fa-map-marker-alt me-1"></i> গ্রাম: <b>{{ sheet.village or 'N/A' }}</b> |
+                    <i class="fas fa-calendar-alt me-1"></i> মাস: <b>{{ sheet.month }} {{ sheet.year }}</b>
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-danger rounded-pill px-4 shadow-sm text-white fw-bold" onclick="handleAllNil()">
+                    <i class="fas fa-undo-alt me-2"></i> অল নিল (Nil All)
+                </button>
+                <a href="/print_kisti/{{ sheet._id|string }}" target="_blank" class="btn btn-success rounded-pill px-4 shadow-sm text-white fw-bold">
+                    <i class="fas fa-print me-2"></i> রিপোর্ট প্রিন্ট
+                </a>
+                <button type="button" class="btn btn-warning rounded-pill px-4 shadow-sm text-white fw-bold" onclick="document.getElementById('main-form').submit()">
+                    <i class="fas fa-save me-2"></i> দ্রুত সেভ করুন
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <form id="main-form" action="/save_kisti/{{ sheet._id|string }}" method="POST">
+        <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 15px;">
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm align-middle text-center mb-0" style="font-size: 11px; min-width: 4500px;">
+                    <thead class="bg-dark text-white text-uppercase">
+                        <tr>
+                            <th rowspan="2" class="align-middle bg-danger">অ্যাকশন</th>
+                            <th rowspan="2" class="align-middle">ক্রঃ নং</th>
+                            <th rowspan="2" class="align-middle" style="min-width: 180px;">সদস্যের নাম</th>
+                            <th rowspan="2" class="align-middle bg-secondary text-white">দলভুক্ত হওয়ার তারিখ</th>
+                            <th rowspan="2" class="align-middle">হিসাব নং</th>
+                            <th rowspan="2" class="align-middle bg-info text-dark">পরিশোধ মাস</th>
+                            <th colspan="10" class="bg-primary text-white">উপকরণের বিবরণ</th>
+                            <th colspan="2" class="bg-secondary text-white">গত মাসের জের</th>
+                            <th colspan="9" class="bg-primary text-white">নগদ আদায়</th>
+                            <th colspan="9" class="bg-success text-white">মূলয় আদায়</th>
+                            <th rowspan="2" class="align-middle border-start bg-dark text-white" style="min-width: 150px;">ভর্তি/ফরম/বিবিধ</th>
+                        </tr>
+                        <tr>
+                            <th class="bg-light text-dark" style="min-width: 130px;">উপকরণের নাম</th>
+                            <th class="bg-light text-dark" style="min-width: 100px;">বিতরণ তারিখ</th>
+                            <th class="bg-light text-dark">মূল্য</th>
+                            <th class="bg-light text-dark">সার্ভিস চার্জ</th>
+                            <th class="bg-light text-dark">সার্ভিস চার্জ সহ মূল্য</th>
+                            <th class="bg-light text-dark">প্রতি কিস্তি</th>
+                            <th class="bg-warning-subtle text-dark">মোট কিস্তি</th>
+                            <th class="bg-warning-subtle text-dark">আদায় কিস্তি</th>
+                            <th class="bg-warning-subtle text-dark">বাকি কিস্তি</th>
+                            <th class="bg-info-subtle text-dark" style="min-width: 200px;">অতিরিক্ত পণ্যের মূল্য (সিলেক্ট করুন)</th>
+
+                            <th class="bg-light text-dark">মোট নগদ</th>
+                            <th class="bg-light text-dark">মোট মূল্য</th>
+                            {% for date in col_dates[:5] %} <th class="bg-light text-dark">{{ date }}</th> {% endfor %}
+                            <th class="bg-light text-dark fw-bold">মোট নগদ আদায়</th>
+                            <th class="bg-warning text-dark">ফেরত তাং</th>
+                            <th class="bg-warning text-dark">ফেরত</th>
+                            <th class="bg-danger-subtle text-danger fw-bold">অবশিষ্ট নগদ</th>
+                            {% for date in col_dates[:5] %} <th class="bg-light text-dark">{{ date }}</th> {% endfor %}
+                            <th class="bg-light text-dark fw-bold">মোট মূল্য আদায়</th>
+                            <th class="bg-warning text-dark">ছাড় তাং</th>
+                            <th class="bg-warning text-dark">মূল্য ছাড়</th>
+                            <th class="bg-info-subtle text-dark fw-bold">অবশিষ্ট মূল্য</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in customers %}
+                        {% set col = c.collections if (c.collections is mapping) else {} %}
+                        {% set is_already_niled = col.get('nil_status') == 'true' %}
+                        
+                        <tr data-cid="{{ c._id }}">
+                            <td class="bg-light">
+                                <input type="hidden" name="nil_status_{{ c._id }}" id="nil_status_input_{{ c._id }}" value="{{ col.get('nil_status', 'false') }}">
+                                <button type="button" class="btn btn-outline-danger btn-xs fw-bold" onclick="handleSingleNil('{{ c._id }}', this.closest('tr'))">Nil</button>
+                            </td>
+                            <td>{{ c.sl_no }}</td>
+                            <td class="text-start ps-2"><b>{{ c.customer_name }}</b></td>
+                            <td><input type="date" name="join_date_{{ c._id }}" class="ins-input-sm" value="{{ c.join_date or '' }}"></td>
+                            <td>{{ c.acc_no }}</td>
+                            <td><input type="text" name="duration_{{ c._id }}" class="ins-input-sm" style="width: 70px;" value="{{ c.duration_months or '' }}"></td>
+
+                            <td>
+                                <input type="text" name="item_name_{{ c._id }}" class="ins-input w-100 mb-1" value="{{ c.product_name or '' }}">
+                                {% for ep in c.extra_products %}
+                                <div class="text-danger x-small text-start border-top pt-1 extra-prod-item">● {{ ep.p_name }}</div>
+                                {% endfor %}
+                            </td>
+                            <td>
+                                <input type="date" name="dist_date_{{ c._id }}" class="ins-input-sm w-100 mb-1" value="{{ c.delivery_date or '' }}">
+                                {% for ep in c.extra_products %}
+                                <div class="text-danger x-small border-top pt-1">{{ ep.added_date or '-' }}</div>
+                                {% endfor %}
+                            </td>
+                            <td>
+                                <input type="number" name="item_price_{{ c._id }}" class="ins-input price-calc mb-1" value="{{ c.cost_price or '' }}">
+                                {% for ep in c.extra_products %}
+                                <div class="text-danger x-small border-top pt-1">{{ ep.p_price|int }}</div>
+                                {% endfor %}
+                            </td>
+                            <td>
+                                <input type="number" name="item_profit_{{ c._id }}" class="ins-input profit-calc mb-1" value="{{ c.profit or '' }}">
+                                {% for ep in c.extra_products %}
+                                <div class="text-danger x-small border-top pt-1">{{ ep.p_profit|int }}</div>
+                                {% endfor %}
+                            </td>
+                            <td class="bg-light fw-bold">
+                                <div id="total_with_profit_{{ c._id }}" class="mb-1">0</div>
+                                {% for ep in c.extra_products %}
+                                <div class="text-danger x-small border-top pt-1">{{ (ep.p_price|default(0)|float + ep.p_profit|default(0)|float)|int }}</div>
+                                {% endfor %}
+                            </td>
+                            <td>
+                                <input type="number" name="per_kisti_{{ c._id }}" class="ins-input mb-1" value="{{ c.per_kisti or '' }}">
+                                {% for ep in c.extra_products %}
+                                <div class="text-danger x-small border-top pt-1">{{ ep.p_kisti|int }}</div>
+                                {% endfor %}
+                            </td>
+
+                            <td><input type="number" name="total_kisti_{{ c._id }}" class="ins-input total-kisti-in" value="{{ c.total_kisti or 0 }}"></td>
+                            <td><input type="number" name="paid_kisti_{{ c._id }}" class="ins-input paid-kisti-in" value="{{ c.paid_kisti or 0 }}"></td>
+                            <td id="remain_kisti_{{ c._id }}" class="fw-bold text-danger">0</td>
+                            
+                            <td class="bg-light p-1">
+                                <div class="extra-select-container" style="max-height: 100px; overflow-y: auto; background: white; padding: 3px; border-radius: 4px;">
+                                    {% for ep in c.extra_products %}
+                                    <div class="d-flex align-items-center border-bottom pb-1 mb-1">
+                                        <input type="checkbox" class="extra-checkbox me-1" 
+                                               data-price="{{ (ep.p_price|default(0)|float + ep.p_profit|default(0)|float) }}"
+                                               onchange="calculateRow('{{ c._id }}', this.closest('tr'))" checked>
+                                        <span class="x-small text-truncate" style="flex: 1; text-align: left;">{{ ep.p_name }}</span>
+                                        <span class="x-small fw-bold text-primary">৳{{ (ep.p_price|default(0)|float + ep.p_profit|default(0)|float)|int }}</span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                <div class="pt-1">
+                                    <span id="extra_total_display_{{ c._id }}" class="fw-bold text-primary">{{ 0 if is_already_niled else '0' }}</span>
+                                </div>
+                            </td>
+
+                            <td><input type="number" name="pre_due_n_{{ c._id }}" class="ins-input pre-due-n" value="{{ col.get('pre_due_n', '') }}"></td>
+                            <td><input type="number" name="pre_due_m_{{ c._id }}" class="ins-input pre-due-m" value="{{ col.get('pre_due_m', '') }}"></td>
+
+                            {% set kisti_list = col.get('kisti_data', []) %}
+                            {% for i in range(1, 6) %}
+                                <td><input type="number" step="any" name="n_{{ i }}_{{ c._id }}" class="ins-input n-in" value="{{ kisti_list[i-1] if (kisti_list|length >= i and kisti_list[i-1] != 0) else '' }}"></td>
+                            {% endfor %}
+                            <td class="bg-light fw-bold text-primary"><span id="total_n_{{ c._id }}">0</span></td>
+                            <td><input type="date" name="r_date_{{ c._id }}" class="ins-input-sm" value="{{ col.get('return_date', '') }}"></td>
+                            <td><input type="number" step="any" name="r_cash_{{ c._id }}" class="ins-input r-in" value="{{ col.get('return_cash', '') }}"></td>
+                            <td class="bg-danger-subtle fw-bold text-danger"><span id="bal_n_{{ c._id }}">0</span></td>
+
+                            {% set price_list = col.get('price_data', []) %}
+                            {% for i in range(1, 6) %}
+                                <td><input type="number" step="any" name="m_{{ i }}_{{ c._id }}" class="ins-input m-in" value="{{ price_list[i-1] if (price_list|length >= i and price_list[i-1] != 0) else '' }}"></td>
+                            {% endfor %}
+                            <td class="bg-light fw-bold text-success"><span id="total_m_{{ c._id }}">0</span></td>
+                            <td><input type="date" name="discount_date_{{ c._id }}" class="ins-input-sm" value="{{ col.get('discount_date', '') }}"></td>
+                            <td><input type="number" step="any" name="discount_{{ c._id }}" class="ins-input d-in text-danger" value="{{ col.get('discount', '') }}"></td>
+                            <td class="bg-info-subtle fw-bold text-dark"><span id="bal_m_{{ c._id }}">0</span></td>
+                            
+                            <td><input type="text" name="comment_{{ c._id }}" class="ins-input" style="width: 120px;" value="{{ col.get('comment', '') }}"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="fixed-bottom bg-white p-3 shadow-lg border-top text-center" style="z-index: 1030;">
+                <button type="submit" class="btn btn-primary px-5 rounded-pill shadow-lg fw-bold py-2 transition-scale">
+                    <i class="fas fa-save me-2"></i> সমস্ত তথ্য সেভ করুন
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+    body { padding-bottom: 100px; }
+    .ins-input { width: 70px; border: 1px solid #cbd5e1; text-align: center; border-radius: 4px; padding: 4px; font-size: 11px; }
+    .ins-input-sm { width: 90px; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px; font-size: 10px; }
+    .x-small { font-size: 9px; line-height: 1.2; }
+    .extra-checkbox { width: 13px; height: 13px; cursor: pointer; }
+    .table thead th { vertical-align: middle; border-color: #334155; padding: 8px 4px; }
+    .bg-danger-subtle { background-color: #fee2e2 !important; }
+    .bg-info-subtle { background-color: #e0f2fe !important; }
+    .bg-warning-subtle { background-color: #fffbeb !important; }
+    .btn-xs { font-size: 10px; padding: 2px 5px; }
+    .transition-scale:hover { transform: scale(1.02); transition: 0.3s; }
+</style>
+
+<script>
+    function calculateRow(cid, row) {
+        let mainPrice = parseFloat(row.querySelector('.price-calc').value) || 0;
+        let mainProfit = parseFloat(row.querySelector('.profit-calc').value) || 0;
+        document.getElementById('total_with_profit_' + cid).innerText = (mainPrice + mainProfit) || '0';
+
+        let nilStatus = document.getElementById('nil_status_input_' + cid).value;
+        let extraTotal = 0;
+        if(nilStatus === "true") {
+            document.getElementById('extra_total_display_' + cid).innerText = "0";
+        } else {
+            row.querySelectorAll('.extra-checkbox:checked').forEach(cb => {
+                extraTotal += parseFloat(cb.dataset.price) || 0;
+            });
+            document.getElementById('extra_total_display_' + cid).innerText = extraTotal;
+        }
+
+        let totalKisti = parseFloat(row.querySelector('.total-kisti-in').value) || 0;
+        let paidKisti = parseFloat(row.querySelector('.paid-kisti-in').value) || 0;
+        document.getElementById('remain_kisti_' + cid).innerText = totalKisti - paidKisti;
+
+        let totalN = 0;
+        row.querySelectorAll('.n-in').forEach(i => totalN += parseFloat(i.value) || 0);
+        let returnN = parseFloat(row.querySelector('.r-in').value) || 0;
+        document.getElementById('total_n_' + cid).innerText = totalN || 0;
+        document.getElementById('bal_n_' + cid).innerText = (totalN - returnN) || 0;
+
+        let totalM = 0;
+        row.querySelectorAll('.m-in').forEach(i => totalM += parseFloat(i.value) || 0);
+        let disc = parseFloat(row.querySelector('.d-in').value) || 0;
+        document.getElementById('total_m_' + cid).innerText = totalM || 0;
+        document.getElementById('bal_m_' + cid).innerText = (totalM - disc) || 0;
+    }
+
+    function performNilAction(cid, row) {
+        let balN = parseFloat(document.getElementById('bal_n_'+cid).innerText) || 0;
+        let balM = parseFloat(document.getElementById('bal_m_'+cid).innerText) || 0;
+        
+        let selectedExtraValue = 0;
+        row.querySelectorAll('.extra-checkbox:checked').forEach(cb => {
+            selectedExtraValue += parseFloat(cb.dataset.price) || 0;
+        });
+
+        let preDueNField = row.querySelector('.pre-due-n');
+        let preDueMField = row.querySelector('.pre-due-m');
+
+        preDueNField.value = (parseFloat(preDueNField.value) || 0) + balN;
+        let oldPreDueM = parseFloat(preDueMField.value) || 0;
+        preDueMField.value = (oldPreDueM + selectedExtraValue) - balM;
+        
+        document.getElementById('nil_status_input_' + cid).value = "true"; 
+        row.querySelectorAll('.n-in, .m-in, .d-in, .r-in').forEach(i => i.value = '');
+        row.querySelectorAll('.extra-checkbox').forEach(cb => cb.checked = false);
+        
+        calculateRow(cid, row);
+    }
+
+    function handleSingleNil(cid, row) {
+        if(!confirm("সিলেক্ট করা অতিরিক্ত পণ্যের মূল্য জেরে পাঠাতে চান?")) return;
+        performNilAction(cid, row);
+    }
+
+    function handleAllNil() {
+        if(!confirm("সবার ব্যালেন্স জেরে পাঠাতে চান?")) return;
+        document.querySelectorAll('tr[data-cid]').forEach(row => {
+            performNilAction(row.dataset.cid, row);
+        });
+    }
+
+    document.addEventListener('input', (e) => {
+        const tr = e.target.closest('tr');
+        if (tr && tr.dataset.cid) calculateRow(tr.dataset.cid, tr);
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('tr[data-cid]').forEach(row => calculateRow(row.dataset.cid, row));
+    });
+</script>
+{% endblock %}
