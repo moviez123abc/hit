@@ -122,7 +122,7 @@ def remove_device(user_id, device_id):
         return {"status": "success", "message": "ডিভাইসটি সরানো হয়েছে"}, 200
     except Exception as e:
         return {"status": "error", "message": str(e)}, 500
-
+        
 @app.route('/logout')
 def logout():
     session.clear()
