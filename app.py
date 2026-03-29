@@ -41,24 +41,87 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# --- ১. লগইন রাউট (Device Tracking সহ) ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
         
-        # ডাটাবেস থেকে ইউজার খোঁজা
+        # ডাটাবেস থেকে ইউজার খোঁজা (db.Users কালেকশন ব্যবহার করা হয়েছে)
         user = db.Users.find_one({"username": username, "password": password})
         
         if user:
+            # ডিভাইস ইনফো সংগ্রহ
+            ua_string = request.headers.get('User-Agent')
+            user_agent = parse(ua_string)
+            
+            device_info = {
+                "device_id": str(uuid.uuid4())[:8],
+                "device_model": user_agent.device.family,
+                "os": user_agent.os.family,
+                "browser": user_agent.browser.family,
+                "ip": request.remote_addr,
+                "login_time": datetime.now().strftime("%Y-%m-%d %I:%M %p"),
+                "status": "current"
+            }
+
+            # নিরাপত্তা: আগের সব ডিভাইসের স্ট্যাটাস 'past' করা (যদি devices ফিল্ড থাকে)
+            if 'devices' in user:
+                db.Users.update_one(
+                    {"_id": user['_id']},
+                    {"$set": {"devices.$[].status": "past"}}
+                )
+
+            # নতুন ডিভাইসটি লিস্টে যোগ করা
+            db.Users.update_one(
+                {"_id": user['_id']},
+                {"$push": {"devices": device_info}}
+            )
+
+            # সেশন সেট করা
             session['user'] = user['username']
             session['role'] = user['role']
+            session['user_id'] = str(user['_id'])
+            
             flash(f"স্বাগতম, {username}!", "success")
             return redirect(url_for('index'))
         else:
-            flash("ভুল ইউজারনেম বা পাসওয়ার্ড!", "danger")
+            flash("ভুল ইউজারনেম বা পাসওয়ার্ড!", "danger")
             
     return render_template('login.html')
+
+
+# --- ২. অ্যাডমিন ডিভাইস লগ পেজ (Data Retrieval) ---
+@app.route('/admin/device_logs')
+def device_logs():
+    try:
+        # সব ইউজার যাদের 'devices' লিস্ট আছে তাদের নিয়ে আসা
+        # লগইন রাউটের সাথে মিল রেখে db.Users ব্যবহার করা হয়েছে
+        users = list(db.Users.find({"devices": {"$exists": True, "$not": {"$size": 0}}}))
+        
+        # ডিবাগ করার জন্য (টার্মিনালে দেখা যাবে ডাটা আসছে কি না)
+        print(f"DEBUG: Found {len(users)} users with login logs")
+        
+        return render_template('admin_device_logs.html', users=users)
+    except Exception as e:
+        print(f"Error loading logs: {e}")
+        flash("লগ লোড করতে সমস্যা হয়েছে।", "danger")
+        return redirect(url_for('index'))
+
+
+# --- ৩. ডিভাইস রিমুভ রাউট (Force Logout) ---
+@app.route('/admin/remove_device/<user_id>/<device_id>', methods=['POST'])
+def remove_device(user_id, device_id):
+    try:
+        # নির্দিষ্ট ইউজারের devices লিস্ট থেকে p_id অনুযায়ী ডাটা রিমুভ করা
+        db.Users.update_one(
+            {"_id": ObjectId(user_id)},
+            {"$pull": {"devices": {"device_id": device_id}}}
+        )
+        return {"status": "success", "message": "ডিভাইসটি সরানো হয়েছে"}, 200
+    except Exception as e:
+        return {"status": "error", "message": str(e)}, 500
 
 @app.route('/logout')
 def logout():
