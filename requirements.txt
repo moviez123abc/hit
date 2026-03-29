@@ -4,3 +4,5 @@ dnspython
 pdfkit
 gunicorn
 python-dotenv
+user-agents
+Werkzeug
