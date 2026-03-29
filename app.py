@@ -48,39 +48,42 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         
+        # আপনার ডাটাবেস কালেকশন নাম db.Users না হলে সেটি পরিবর্তন করুন
         user = db.Users.find_one({"username": username, "password": password})
         
         if user:
-            # ডিভাইস ইনফো সংগ্রহ
-            ua_string = request.headers.get('User-Agent')
-            user_agent = parse(ua_string)
-            
-            device_info = {
-                "device_id": str(uuid.uuid4())[:8],
-                "device_model": user_agent.device.family,
-                "os": user_agent.os.family,
-                "browser": user_agent.browser.family,
-                "ip": request.remote_addr,
-                "login_time": datetime.now().strftime("%Y-%m-%d %I:%M %p"),
-                "status": "current"
-            }
+            try:
+                # ডিভাইস ইনফো সংগ্রহ
+                ua_string = request.headers.get('User-Agent')
+                user_agent = parse(ua_string)
+                
+                device_info = {
+                    "device_id": str(uuid.uuid4())[:8],
+                    "device_model": user_agent.device.family if user_agent.device.family else "Unknown Device",
+                    "os": user_agent.os.family if user_agent.os.family else "Unknown OS",
+                    "browser": user_agent.browser.family,
+                    "ip": request.remote_addr,
+                    "login_time": datetime.now().strftime("%Y-%m-%d %I:%M %p"),
+                    "status": "current"
+                }
 
-            # ফিক্স: যদি আগে থেকেই devices ফিল্ড থাকে এবং তাতে ডাটা থাকে, তবেই $set রান করবে
-            if user.get('devices') and len(user['devices']) > 0:
-                try:
+                # ১. আগের সব ডিভাইসের স্ট্যাটাস 'past' করা (শুধুমাত্র যদি আগে থেকে devices থাকে)
+                if user.get('devices') and isinstance(user['devices'], list) and len(user['devices']) > 0:
                     db.Users.update_one(
                         {"_id": user['_id']},
                         {"$set": {"devices.$[].status": "past"}}
                     )
-                except Exception as e:
-                    print(f"Update error: {e}")
 
-            # নতুন ডিভাইসটি লিস্টে যোগ করা
-            db.Users.update_one(
-                {"_id": user['_id']},
-                {"$push": {"devices": device_info}}
-            )
+                # ২. নতুন ডিভাইসটি লিস্টে যোগ করা
+                db.Users.update_one(
+                    {"_id": user['_id']},
+                    {"$push": {"devices": device_info}}
+                )
+            except Exception as device_error:
+                # ডিভাইস ট্র্যাকিং এ এরর হলেও লগইন যাতে আটকে না যায়
+                print(f"Device Tracking Error: {device_error}")
 
+            # সেশন সেট করা
             session['user'] = user['username']
             session['role'] = user['role']
             session['user_id'] = str(user['_id'])
