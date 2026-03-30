@@ -103,7 +103,7 @@
         {% endfor %}
         
         {% set t.total_bal_n = t.total_bal_n + (k_list|sum if k_list else 0) - col.get('return_cash', 0)|float %}
-        {% set t.total_bal_m = t.total_bal_m + (p_list|sum if p_list else 0) - col.get('discount', 0)|float %}
+        {% set t.total_bal_m = t.total_bal_m + (p_list|sum if p_list else 0) + col.get('discount', 0)|float %}
     {% endfor %}
 
     {% for batch in customers|batch(20) %}
@@ -262,7 +262,7 @@
                             {% else %}{{ dd }}{% endif %}
                         </td>
                         <td>{{ col.get('discount', 0)|int if col.get('discount', 0)|float > 0 else '' }}</td>
-                        <td class="fw-bold">{{ (p_list|sum - col.get('discount', 0)|float)|int }}</td>
+                        <td class="fw-bold">{{ (p_list|sum + col.get('discount', 0)|float)|int }}</td>
                         <td style="font-size: 6px;">{{ col.get('comment', '') }}</td>
                     </tr>
                 {% endfor %}
