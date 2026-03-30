@@ -244,7 +244,7 @@
         row.querySelectorAll('.m-in').forEach(i => totalM += parseFloat(i.value) || 0);
         let disc = parseFloat(row.querySelector('.d-in').value) || 0;
         setDisplayValue('total_m_' + cid, totalM);
-        setDisplayValue('bal_m_' + cid, totalM - disc);
+        setDisplayValue('bal_m_' + cid, totalM + disc);
     }
 
     function performNilAction(cid, row) {
