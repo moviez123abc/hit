@@ -226,7 +226,7 @@
                         </td>
                         <td>{{ c.total_kisti|default(0) }}</td>
                         <td>{{ c.paid_kisti|default(0) }}</td>
-                        <td class="fw-bold">{{ c.running_kisti or '' }}</td> <td class="text-danger fw-bold">{{ (c.total_kisti|default(0)|int - c.paid_kisti|default(0)|int) }}</td>
+                        <td class="fw-bold">{{ col.get('running_kisti', '') }}</td> <td class="text-danger fw-bold">{{ (c.total_kisti|default(0)|int - c.paid_kisti|default(0)|int) }}</td>
                         <td>
                             {% set ep_total = 0 %}
                             {% for ep in c.extra_products %}{% set ep_total = ep_total + (ep.p_price|default(0)|float + ep.p_profit|default(0)|float) %}{% endfor %}
