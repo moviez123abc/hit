@@ -10,12 +10,18 @@
             </span>
         </div>
         <div class="col-12 col-md-6 d-flex justify-content-center justify-content-md-end gap-2">
+            <div class="input-group shadow-sm bg-white rounded-pill overflow-hidden border me-2" style="max-width: 200px;">
+                <span class="input-group-text bg-white border-0 ps-3">
+                    <i class="fas fa-search text-muted small"></i>
+                </span>
+                <input type="text" id="sheetSearch" class="form-control border-0 py-2 shadow-none small" placeholder="খুঁজুন...">
+            </div>
             {% if session['role'] == 'admin' %}
                 <button class="btn btn-warning shadow rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#createSheetModal">
-                    <i class="fas fa-plus-circle me-1"></i> নতুন শীট
+                    <i class="fas fa-plus-circle me-1"></i> নতুন
                 </button>
                 <a href="{{ url_for('manage_users') }}" class="btn btn-outline-primary rounded-pill px-3 shadow-sm">
-                    <i class="fas fa-users-cog"></i> ইউজার
+                    <i class="fas fa-users-cog"></i>
                 </a>
             {% endif %}
             <a href="{{ url_for('logout') }}" class="btn btn-danger rounded-pill px-3 shadow-sm">
@@ -29,10 +35,10 @@
         <span class="badge bg-primary rounded-pill px-3 py-2">{{ sheets|length }} টি একটিভ</span>
     </div>
 
-    <div class="row g-3">
+    <div class="row g-3" id="sheetContainer">
         {% for s in sheets %}
         {% set sid = s._id|string %}
-        <div class="col-12 col-sm-6 col-lg-4">
+        <div class="col-12 col-sm-6 col-lg-4 sheet-card-item">
             <div class="card h-100 border-0 shadow-sm hover-card" style="border-radius: 20px; position: relative; overflow: hidden;">
                 
                 {% if session['role'] == 'admin' %}
@@ -42,7 +48,6 @@
                             style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.9);">
                         <i class="fas fa-edit"></i>
                     </button>
-                    {% set sid = s._id|string %}
 
                     <a href="{{ url_for('delete_sheet', id=sid) }}" class="btn btn-sm btn-white text-danger shadow-sm rounded-circle" onclick="return confirm('আপনি কি নিশ্চিত যে এটি ডিলিট করবেন?')">
                         <i class="fas fa-trash-alt"></i>
@@ -56,8 +61,8 @@
                             <i class="fas fa-file-invoice fa-lg"></i>
                         </div>
                         <div class="overflow-hidden">
-                            <h5 class="card-title fw-bold mb-0 text-truncate">{{ s.group_name }}</h5>
-                            <small class="text-muted"><i class="fas fa-hashtag me-1"></i>কোড: {{ s.code_no }}</small>
+                            <h5 class="card-title fw-bold mb-0 text-truncate group-name">{{ s.group_name }}</h5>
+                            <small class="text-muted"><i class="fas fa-hashtag me-1"></i>কোড: <span class="code-no">{{ s.code_no }}</span></small>
                         </div>
                     </div>
                     
@@ -65,7 +70,7 @@
                         <div class="col-6">
                             <div class="p-2 bg-light rounded-3 text-center">
                                 <p class="mb-0 text-muted x-small">এলাকা</p>
-                                <p class="fw-bold small mb-0">{{ s.village or 'N/A' }}</p>
+                                <p class="fw-bold small mb-0 village-name">{{ s.village or 'N/A' }}</p>
                             </div>
                         </div>
                         <div class="col-6">
@@ -283,4 +288,41 @@
     }
     .btn-white { background: white; border: none; }
 </style>
+
+<script>
+    // Search Functionality
+    document.getElementById('sheetSearch').addEventListener('keyup', function() {
+        let filter = this.value.toUpperCase();
+        let cards = document.getElementsByClassName('sheet-card-item');
+        let container = document.getElementById('sheetContainer');
+        let hasResults = false;
+
+        for (let i = 0; i < cards.length; i++) {
+            let groupName = cards[i].querySelector('.group-name').innerText.toUpperCase();
+            let villageName = cards[i].querySelector('.village-name').innerText.toUpperCase();
+            let codeNo = cards[i].querySelector('.code-no').innerText.toUpperCase();
+
+            if (groupName.indexOf(filter) > -1 || villageName.indexOf(filter) > -1 || codeNo.indexOf(filter) > -1) {
+                cards[i].style.display = "";
+                hasResults = true;
+            } else {
+                cards[i].style.display = "none";
+            }
+        }
+
+        // Show "No Results" message if needed
+        let noResultMsg = document.getElementById('no-search-results');
+        if (!hasResults) {
+            if (!noResultMsg) {
+                let div = document.createElement('div');
+                div.id = 'no-search-results';
+                div.className = 'col-12 text-center py-5';
+                div.innerHTML = '<h5 class="text-muted">কোনো শীট পাওয়া যায়নি।</h5>';
+                container.appendChild(div);
+            }
+        } else if (noResultMsg) {
+            noResultMsg.remove();
+        }
+    });
+</script>
 {% endblock %}
