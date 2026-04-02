@@ -14,7 +14,7 @@
                 <span class="input-group-text bg-white border-0 ps-3">
                     <i class="fas fa-search text-muted small"></i>
                 </span>
-                <input type="text" id="sheetSearch" class="form-control border-0 py-2 shadow-none small" placeholder="খুঁজুন...">
+                <input type="text" id="sheetSearch" class="form-control border-0 py-2 shadow-none small" placeholder="নাম বা কোড দিয়ে খুঁজুন...">
             </div>
         </div>
     </div>
@@ -36,7 +36,10 @@
                         </div>
                         <div class="overflow-hidden">
                             <h5 class="card-title fw-bold mb-0 text-truncate group-name">{{ s.group_name }}</h5>
-                            <small class="text-muted"><i class="far fa-calendar-alt me-1"></i>বার: {{ s.collection_day }}</small>
+                            <div class="d-flex flex-column">
+                                <small class="text-muted"><i class="far fa-calendar-alt me-1"></i>বার: {{ s.collection_day }}</small>
+                                <small class="text-primary fw-bold code-number">কোড: {{ s.code_no }}</small>
+                            </div>
                         </div>
                     </div>
                     
@@ -78,7 +81,6 @@
 </div>
 
 <style>
-    /* Same CSS as your Index Page */
     .hover-card { transition: all 0.3s ease; }
     .hover-card:hover {
         transform: translateY(-10px);
@@ -91,25 +93,49 @@
         box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1);
     }
 
-    /* Button Hover effect */
     .btn { transition: 0.3s; }
     .btn:hover { transform: scale(1.02); }
 </style>
 
 <script>
-    // Real-time Search Logic
+    // Real-time Search Logic (Group Name, Village, and Code Number)
     document.getElementById('sheetSearch').addEventListener('keyup', function() {
         let filter = this.value.toUpperCase();
         let cards = document.getElementsByClassName('sheet-card-item');
-        
+        let container = document.getElementById('sheetContainer');
+        let hasResults = false;
+
         for (let i = 0; i < cards.length; i++) {
-            let name = cards[i].querySelector('.group-name').innerText;
-            let village = cards[i].querySelector('.village-name').innerText;
-            if (name.toUpperCase().indexOf(filter) > -1 || village.toUpperCase().indexOf(filter) > -1) {
+            let groupName = cards[i].querySelector('.group-name').innerText.toUpperCase();
+            let villageName = cards[i].querySelector('.village-name').innerText.toUpperCase();
+            let codeNumber = cards[i].querySelector('.code-number').innerText.toUpperCase();
+
+            // নাম, গ্রাম অথবা কোড নম্বর—যেকোনো একটি মিললেই কার্ডটি দেখাবে
+            if (groupName.indexOf(filter) > -1 || villageName.indexOf(filter) > -1 || codeNumber.indexOf(filter) > -1) {
                 cards[i].style.display = "";
+                hasResults = true;
             } else {
                 cards[i].style.display = "none";
             }
+        }
+
+        // রেজাল্ট না থাকলে মেসেজ দেখানো
+        let noResultMsg = document.getElementById('no-results-found');
+        if (!hasResults) {
+            if (!noResultMsg) {
+                let div = document.createElement('div');
+                div.id = 'no-results-found';
+                div.className = 'col-12 text-center py-5';
+                div.innerHTML = `
+                    <div class="bg-light rounded-4 p-4 d-inline-block border">
+                        <i class="fas fa-search-minus fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">দুঃখিত, এই নাম বা কোড নম্বরে কোনো শীট পাওয়া যায়নি।</p>
+                    </div>
+                `;
+                container.appendChild(div);
+            }
+        } else {
+            if (noResultMsg) noResultMsg.remove();
         }
     });
 </script>
