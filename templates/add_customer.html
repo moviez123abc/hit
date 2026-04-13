@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}নতুন গ্রাহক যুক্ত করুন | HIT Admin{% endblock %}
+{% block title %}নতুন সদস্য যুক্ত করুন | HIT Admin{% endblock %}
 
 {% block content %}
 <div class="container py-4">
@@ -20,7 +20,7 @@
             <div class="card shadow-lg border-0" style="border-radius: 20px;">
                 <div class="card-header bg-primary text-white p-4" style="border-radius: 20px 20px 0 0;">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h4 class="mb-0 fw-bold"><i class="fas fa-user-plus me-2"></i> নতুন গ্রাহক বা সদস্য নিবন্ধন</h4>
+                        <h4 class="mb-0 fw-bold"><i class="fas fa-user-plus me-2"></i> নতুন সদস্য নিবন্ধন</h4>
                         <span class="badge bg-white text-primary px-3 py-2 rounded-pill">Status: Active</span>
                     </div>
                 </div>
@@ -28,7 +28,7 @@
                 <form action="{{ url_for('save_customer') }}" method="POST" class="p-4" id="addCustomerForm">
                     <div class="row mb-4">
                         <div class="col-md-12">
-                            <label class="form-label fw-bold text-primary">কালেকশন শীট/দল নির্বাচন করুন <span class="text-danger">*</span></label>
+                            <label class="form-label fw-bold text-primary">দল নির্বাচন করুন <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text bg-primary text-white border-primary"><i class="fas fa-layer-group"></i></span>
                                 <select name="sheet_id" class="form-select form-select-lg border-primary" required>
@@ -78,7 +78,7 @@
                             <input type="date" name="delivery_date" class="form-control">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label small fw-bold">কিস্তি সংখ্যা (মাস)</label>
+                            <label class="form-label small fw-bold">সপ্তাহ সংখ্যা/ মাস সংখ্যা</label>
                             <input type="number" name="total_months" class="form-control" placeholder="যেমন: ১২" min="1">
                         </div>
 
@@ -90,14 +90,14 @@
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label small fw-bold">মুনাফা (Profit)</label>
+                            <label class="form-label small fw-bold">সার্ভিস চার্জ</label>
                             <div class="input-group">
                                 <span class="input-group-text">৳</span>
                                 <input type="number" step="0.01" id="profit" name="profit" class="form-control" placeholder="0.00">
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label small fw-bold text-danger">মোট পাওনা (মুনাফাসহ)</label>
+                            <label class="form-label small fw-bold text-danger">সার্ভিস চার্জ সহ মূল্য</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-danger text-white border-danger">৳</span>
                                 <input type="number" id="total_with_profit" name="total_price" class="form-control fw-bold bg-white border-danger text-danger" readonly>
