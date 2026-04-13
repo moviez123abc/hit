@@ -564,7 +564,7 @@ def save_customer():
         else:
             flash("সদস্য যুক্ত হয়েছে এবং অ্যাডমিনের অনুমোদনের জন্য অপেক্ষমান।", "info")
             
-        return redirect(url_for('view_sheet', sheet_id=sheet_id))
+        return redirect(url_for('view_kisti_sheet', sheet_id=sheet_id))
         
     except Exception as e:
         flash(f"সেভ করতে সমস্যা হয়েছে: {str(e)}", "danger")
