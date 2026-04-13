@@ -296,7 +296,7 @@
         preDueMField.value = (oldPreDueM + selectedExtraValue) - balM;
         
         document.getElementById('nil_status_input_' + cid).value = "true"; 
-        row.querySelectorAll('.n-in, .m-in, .d-in, .r-in, [name^="r_date_"], [name^="discount_date_"]').forEach(i => i.value = '');
+        row.querySelectorAll('.n-in, .m-in, .d-in, .r-in, input[name^="r_date_"], input[name^="discount_date_"]').forEach(i => i.value = '');
         row.querySelectorAll('.extra-checkbox').forEach(cb => cb.checked = false);
         
         calculateRow(cid, row);
