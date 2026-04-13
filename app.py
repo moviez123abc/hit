@@ -869,7 +869,8 @@ def edit_customer(cust_id):
         all_sheets = list(sheets_col.find({}, {"group_name": 1}))
         
         if customer:
-            # ডিফল্ট ভ্যালু সেট করা যাতে টেমপ্লেটে এরর না আসে
+            # ডিফল্ট ভ্যালু সেট করা যাতে টেমপ্লেটে এরর না আসে 
+            customer['sl_no'] = customer.get('sl_no', 0)
             customer['cost_price'] = customer.get('cost_price', 0)
             customer['profit'] = customer.get('profit', 0)
             customer['per_kisti'] = customer.get('per_kisti', 0)
@@ -892,12 +893,14 @@ def update_customer(cust_id):
         sheet_id = request.form.get('sheet_id')
         name = request.form.get('name')
         acc_no = request.form.get('acc_no')
+        sl_no = request.form.get('sl_no')
         
         update_data = {
             "$set": {
                 "customer_name": name,
                 "acc_no": acc_no,
-                "sheet_id": sheet_id
+                "sheet_id": sheet_id,
+                "sl_no": int(sl_no) if sl_no else 0
             }
         }
 
