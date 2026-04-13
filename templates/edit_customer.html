@@ -7,7 +7,7 @@
             <div class="card border-0 shadow-sm" style="border-radius: 15px;">
                 <div class="card-body p-4">
                     <h4 class="fw-bold text-primary mb-4 text-center">
-                        <i class="fas fa-user-edit me-2"></i>গ্রাহক তথ্য ও পণ্য ব্যবস্থাপনা
+                        <i class="fas fa-user-edit me-2"></i>সদস্য তথ্য ও উপকরণ ব্যবস্থাপনা
                     </h4>
                     
                     <form action="/update_customer/{{ c._id|string }}" method="POST">
@@ -15,7 +15,7 @@
 
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
-                                <label class="small fw-bold text-muted">গ্রাহকের নাম</label>
+                                <label class="small fw-bold text-muted">সদস্যের নাম</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-white border-end-0"><i class="fas fa-user text-primary"></i></span>
                                     <input type="text" name="name" value="{{ c.customer_name }}" class="form-control border-start-0 ps-0" required>
@@ -32,7 +32,7 @@
 
                         <div class="mb-4">
                             <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
-                                <i class="fas fa-box-open me-2 text-secondary"></i>বর্তমান পণ্যসমূহ
+                                <i class="fas fa-box-open me-2 text-secondary"></i>বর্তমান উপকরণ সমূহ
                             </h6>
                             <div class="list-group shadow-sm border-0">
                                 
@@ -81,7 +81,7 @@
                         </div>
 
                         <div class="p-4 bg-light rounded-4 mt-4 border border-2 border-dashed">
-                            <h6 class="fw-bold text-success mb-3"><i class="fas fa-plus-circle me-2"></i>নতুন পণ্য যোগ করুন</h6>
+                            <h6 class="fw-bold text-success mb-3"><i class="fas fa-plus-circle me-2"></i>নতুন উপকরণ যোগ করুন</h6>
                             <div class="row g-3">
                                 <div class="col-12">
                                     <input type="text" name="new_product" class="form-control form-control-sm shadow-sm" placeholder="উপকরণের নাম">
@@ -93,7 +93,7 @@
                                     <input type="number" step="any" name="new_profit" class="form-control form-control-sm shadow-sm" placeholder="সার্ভিস চার্জ">
                                 </div>
                                 <div class="col-md-4">
-                                    <input type="number" step="any" name="new_per_kisti" class="form-control form-control-sm shadow-sm" placeholder="প্রতি মূল্য">
+                                    <input type="number" step="any" name="new_per_kisti" class="form-control form-control-sm shadow-sm" placeholder="সাপ্তাহিক মূল্য">
                                 </div>
                                 <div class="col-12">
                                     <label class="x-small text-muted ms-1">বিতরণের তারিখ</label>
