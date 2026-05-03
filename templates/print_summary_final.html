@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <title>HIT - Official Summary Report</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Hind Siliguri', sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #fff;
+        }
+
+        /* Page Break Logic */
+        .page-container {
+            page-break-after: always;
+        }
+        
+        .page-container:last-child {
+            page-break-after: auto;
+        }
+
+        @media print {
+            @page { size: A4 landscape; margin: 10mm; }
+            .print-btn { display: none; }
+            body { padding: 0; }
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+        }
+
+        .header h1 { margin: 0; font-size: 24px; color: #000; }
+        .header p { margin: 3px 0; font-size: 13px; }
+
+        .report-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        th, td {
+            border: 1px solid #000;
+            padding: 6px 4px;
+            text-align: center;
+            font-size: 11px;
+            word-wrap: break-word;
+        }
+
+        th { background-color: #f2f2f2; font-weight: bold; }
+        .text-center { text-align: center; }
+        
+        .footer-total { background-color: #eee; font-weight: bold; }
+
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: #000;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            z-index: 1000;
+        }
+
+        .signature-section {
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .sig-box {
+            border-top: 1px solid #000;
+            width: 150px;
+            text-align: center;
+            padding-top: 5px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <button class="print-btn" onclick="window.print()">এখনই প্রিন্ট করুন (Print Now)</button>
+
+    {# Totals calculation across all items #}
+    {% set t = namespace(members=0, cash=0, price_coll=0, rem_n=0, rem_m=0) %}
+    {% for item in summary %}
+        {% set current_price_coll = item.collected_price | default(item.total_value) | default(0) %}
+        {% set t.members = t.members + (item.member_count | default(0) | int) %}
+        {% set t.cash = t.cash + (item.collected_cash | default(0)) %}
+        {% set t.price_coll = t.price_coll + current_price_coll %}
+        {% set t.rem_n = t.rem_n + (item.pending_cash | default(0)) %}
+        {% set t.rem_m = t.rem_m + (item.pending_product_val | default(0)) %}
+    {% endfor %}
+
+    {# Splitting the summary into batches of 20 #}
+    {% for batch in summary|batch(20) %}
+    <div class="page-container">
+        <div class="header">
+            <h1>হিলফুল ফুজুল ইসলামী ট্রেডার্স (HIT)</h1>
+            <p>প্রধান কার্যালয়: কুতুবপুর বাজার, সারিয়াকান্দি, বগুড়া।</p>
+            <p><strong>সকল দলের আদায় ও স্থিতি সামারি রিপোর্ট (পৃষ্ঠা: {{ loop.index }})</strong></p>
+        </div>
+
+        <div class="report-info">
+            <span></span>
+            <span>রিপোর্ট আইডি: HIT-{{ now.strftime('%d%m%y') if now else '' }}</span>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 40px;">নং</th>
+                    <th style="width: 180px;" class="text-center">দলের নাম</th>
+                    <th style="width: 60px;">কোড</th>
+                    <th style="width: 50px;">সদস্য</th>
+                    <th>নগদ আদায়</th>
+                    <th>মূল্য আদায়</th>
+                    <th>নগদ স্থিতি</th>
+                    <th>মূল্য স্থিতি</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set outer_loop = loop %}
+                {% for item in batch %}
+                {% set current_row_index = (outer_loop.index0 * 20) + loop.index %}
+                <tr>
+                    <td>{{ current_row_index }}</td>
+                    <td class="text-left">{{ item.group_name }}</td>
+                    <td>{{ item.code_no }}</td>
+                    <td>{{ item.member_count }}</td>
+                    <td>{{ "{:,.0f}".format(item.collected_cash | default(0)) }}</td>
+                    <td>{{ "{:,.0f}".format(item.collected_price | default(item.total_value) | default(0)) }}</td>
+                    <td>{{ "{:,.0f}".format(item.pending_cash | default(0)) }}</td>
+                    <td>{{ "{:,.0f}".format(item.pending_product_val | default(0)) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            
+            {# Show total only on the last page #}
+            {% if loop.last %}
+            <tfoot>
+                <tr class="footer-total">
+                    <td colspan="3" style="text-align: right; padding-right: 15px;">Grand Total:</td>
+                    <td>{{ t.members }} জন</td>
+                    <td>{{ "{:,.0f}".format(t.cash) }} ৳</td>
+                    <td>{{ "{:,.0f}".format(t.price_coll) }} ৳</td>
+                    <td>{{ "{:,.0f}".format(t.rem_n) }} ৳</td>
+                    <td>{{ "{:,.0f}".format(t.rem_m) }} ৳</td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+
+    </div>
+    {% endfor %}
+
+</body>
+</html>

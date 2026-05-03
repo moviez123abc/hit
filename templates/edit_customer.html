@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card border-0 shadow-sm" style="border-radius: 15px;">
+                <div class="card-body p-4">
+                    <h4 class="fw-bold text-primary mb-4 text-center">
+                        <i class="fas fa-user-edit me-2"></i>উপকরণ ও সদস্য যোগ/সংশোধন
+                    </h4>
+                    
+                    <form action="/update_customer/{{ c._id|string }}" method="POST">
+                        <input type="hidden" name="sheet_id" value="{{ c.sheet_id }}">
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-3">
+                                <label class="small fw-bold text-muted">ক্র. নং</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-sort-numeric-down text-primary"></i></span>
+                                    <input type="text" name="sl_no" value="{{ c.sl_no }}" class="form-control border-start-0 ps-0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="small fw-bold text-muted">সদস্যের নাম</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-user text-primary"></i></span>
+                                    <input type="text" name="name" value="{{ c.customer_name }}" class="form-control border-start-0 ps-0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="small fw-bold text-muted">হিসাব নম্বর</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0"><i class="fas fa-hashtag text-primary"></i></span>
+                                    <input type="text" name="acc_no" value="{{ c.acc_no }}" class="form-control border-start-0 ps-0" required>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="small fw-bold text-primary">দলভুক্ত হওয়ার তারিখ</label>
+                                <input type="date" name="join_date" value="{{ c.join_date }}" class="form-control shadow-sm border-primary">
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                                <i class="fas fa-box-open me-2 text-secondary"></i>বর্তমান উপকরণ সমূহ
+                            </h6>
+                            <div class="list-group shadow-sm border-0">
+                                
+                                {% if c.product_name and c.product_name != "" %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center bg-light border-0 mb-2 rounded-3 shadow-sm">
+                                    <div class="ps-2">
+                                        <div class="d-flex align-items-center mb-1">
+                                            <span class="badge bg-primary me-2">Main</span>
+                                            <span class="fw-bold text-dark">{{ c.product_name }}</span>
+                                        </div>
+                                        <div class="x-small text-muted">
+                                            <i class="fas fa-money-bill-wave me-1"></i>মূল্য: {{ c.cost_price }} | 
+                                            <i class="fas fa-chart-line me-1"></i>সার্ভিস চার্জ: {{ c.profit }} | 
+                                            <i class="fas fa-calendar-day me-1"></i>{{ c.delivery_date }}
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-danger btn-sm rounded-circle shadow-sm" style="width: 32px; height: 32px;" onclick="deleteMainProductPrompt('{{ c._id|string }}')" title="ডিলিট">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                                {% endif %}
+
+                                {% for ep in c.extra_products %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center border-0 mb-2 rounded-3 shadow-sm border-start border-success border-4">
+                                    <div class="ps-2">
+                                        <div class="d-flex align-items-center mb-1">
+                                            <span class="badge bg-success me-2">Extra</span>
+                                            <span class="fw-bold text-dark">{{ ep.p_name }}</span>
+                                        </div>
+                                        <div class="x-small text-muted">
+                                            মূল্য: {{ ep.p_price }} | সার্ভিস চার্জ: {{ ep.p_profit }} | সাপ্তাহিক মূল্য: {{ ep.p_kisti }} | তাং: {{ ep.added_date }}
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-danger btn-sm rounded-circle" style="width: 32px; height: 32px;" onclick="deleteExtraProduct('{{ c._id|string }}', '{{ ep.p_id }}')" title="মুছে ফেলুন">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                {% endfor %}
+
+                                {% if not c.product_name and (not c.extra_products or c.extra_products|length == 0) %}
+                                <div class="list-group-item text-center text-muted small py-4 bg-light border-0 rounded-3">
+                                    <i class="fas fa-info-circle me-2"></i>কোন পণ্য খুঁজে পাওয়া যায়নি।
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="p-4 bg-light rounded-4 mt-4 border border-2 border-dashed">
+                            <h6 class="fw-bold text-success mb-3"><i class="fas fa-plus-circle me-2"></i>নতুন উপকরণ যোগ করুন</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="x-small fw-bold text-muted">উপকরণের নাম</label>
+                                    <input type="text" name="new_product" class="form-control form-control-sm shadow-sm" placeholder="নাম লিখুন">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="x-small fw-bold text-muted">বিতরণ তারিখ</label>
+                                    <input type="date" name="new_date" class="form-control form-control-sm shadow-sm">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="x-small fw-bold text-muted">মূল্য</label>
+                                    <input type="number" step="any" id="new_price" name="new_price" class="form-control form-control-sm shadow-sm" placeholder="0.00">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="x-small fw-bold text-muted">সার্ভিস চার্জ</label>
+                                    <input type="number" step="any" id="new_profit" name="new_profit" class="form-control form-control-sm shadow-sm" placeholder="0.00">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="x-small fw-bold text-muted">সার্ভিস চার্জসহ মূল্য</label>
+                                    <input type="number" step="any" id="new_total_cost" name="new_total_cost" class="form-control form-control-sm shadow-sm bg-white" placeholder="0.00" readonly>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="x-small fw-bold text-muted">সাপ্তাহিক মূল্য</label>
+                                    <input type="number" step="any" name="new_per_kisti" class="form-control form-control-sm shadow-sm" placeholder="0.00">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="x-small fw-bold text-muted">মোট সপ্তাহ</label>
+                                    <input type="number" name="total_kisti" value="{{ c.total_kisti }}" class="form-control form-control-sm shadow-sm" placeholder="উদা: ৫০">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-3 mt-5">
+                            <a href="/sheet/{{ c.sheet_id }}" class="btn btn-outline-secondary w-50 py-2 fw-bold">
+                                <i class="fas fa-arrow-left me-2"></i>ফিরে যান
+                            </a>
+                            <button type="submit" class="btn btn-primary w-50 py-2 fw-bold shadow">
+                                <i class="fas fa-save me-2"></i>সেভ করুন
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .x-small { font-size: 11px; }
+    .border-dashed { border-style: dashed !important; border-color: #dee2e6 !important; }
+    .form-control:focus { box-shadow: none; border-color: #6366f1; }
+    .list-group-item { transition: all 0.3s ease; }
+    .list-group-item:hover { transform: translateY(-2px); }
+</style>
+
+<script>
+    // অটোমেটিক সার্ভিস চার্জসহ মূল্য হিসাব
+    const priceInput = document.getElementById('new_price');
+    const profitInput = document.getElementById('new_profit');
+    const totalInput = document.getElementById('new_total_cost');
+
+    function calculateTotal() {
+        const price = parseFloat(priceInput.value) || 0;
+        const profit = parseFloat(profitInput.value) || 0;
+        totalInput.value = (price + profit).toFixed(2);
+    }
+
+    priceInput.addEventListener('input', calculateTotal);
+    profitInput.addEventListener('input', calculateTotal);
+
+    async function deleteExtraProduct(cid, pid) {
+        if (!confirm("আপনি কি নিশ্চিতভাবে এই এক্সট্রা পণ্যটি ডিলিট করতে চান?")) return;
+        try {
+            const response = await fetch(`/delete_extra_product/${cid}/${pid}`, { 
+                method: 'POST'
+            });
+            if (response.ok) {
+                location.reload(); 
+            } else {
+                alert("ডিলিট করতে সমস্যা হয়েছে।");
+            }
+        } catch (error) {
+            console.error("Error:", error);
+        }
+    }
+
+    async function deleteMainProductPrompt(cid) {
+        if (!confirm("সাবধান! আপনি কি নিশ্চিতভাবে মূল পণ্যটি মুছে ফেলতে চান?")) return;
+        try {
+            const response = await fetch(`/delete_main_product/${cid}`, { 
+                method: 'POST'
+            });
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert("মেইন প্রোডাক্ট রিসেট করা সম্ভব হয়নি।");
+            }
+        } catch (error) {
+            console.error("Error:", error);
+        }
+    }
+</script>
+{% endblock %}
