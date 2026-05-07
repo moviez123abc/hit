@@ -1,67 +1,84 @@
 {% extends 'base.html' %}
 
+{% block title %}সদস্য স্থানান্তর | HIT Admin{% endblock %}
+
 {% block content %}
 <div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-md-6">
-            {% if c %}
-            <div class="card shadow-lg border-0" style="border-radius: 15px;">
-                <div class="card-header bg-warning text-dark p-4" style="border-radius: 15px 15px 0 0;">
-                    <h5 class="mb-0 fw-bold"><i class="fas fa-exchange-alt me-2"></i> সদস্য স্থানান্তর (Move)</h5>
+        <div class="col-lg-6 col-md-8">
+            {% if customer %}
+            <div class="card shadow-lg border-0" style="border-radius: 20px;">
+                <div class="card-header bg-warning text-dark p-4 text-center border-0">
+                    <div class="mb-2">
+                        <i class="fas fa-truck-moving fa-2x"></i>
+                    </div>
+                    <h4 class="mb-0 fw-bold">সদস্য স্থানান্তর করুন</h4>
                 </div>
+
                 <div class="card-body p-4">
-                    <div class="alert alert-info border-0 shadow-sm">
-                        <small class="fw-bold d-block text-uppercase text-muted">স্থানান্তর করা হচ্ছে:</small>
-                        <h5 class="mb-1 fw-bold text-dark">{{ c.customer_name }}</h5>
-                        <p class="mb-0 small text-secondary">
-                            <i class="fas fa-id-badge me-1"></i> হিসাব নং: {{ c.acc_no }} | 
-                            <i class="fas fa-file-invoice me-1"></i> বর্তমান দল: {{ current_sheet.group_name if current_sheet else 'অনির্ধারিত' }}
-                        </p>
+                    <div class="bg-light p-3 rounded-4 mb-4 border-start border-4 border-warning shadow-sm">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <div class="bg-white rounded-circle p-2 shadow-sm">
+                                    <i class="fas fa-user text-warning fs-4 px-1"></i>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <h5 class="mb-0 fw-bold text-dark">{{ customer.customer_name }}</h5>
+                                <div class="small text-muted">
+                                    <span class="me-2"><i class="fas fa-id-card me-1"></i>হিসাব: {{ customer.acc_no }}</span>
+                                    <span><i class="fas fa-folder-open me-1"></i>বর্তমান শীট: {{ customer.sheet_name }}</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <form action="{{ url_for('execute_move_customer') }}" method="POST">
-                        <input type="hidden" name="cust_id" value="{{ c._id|string }}">
-                        
+                    <form action="{{ url_for('move_customer_page', cust_id=customer._id|string) }}" method="POST">
                         <div class="mb-3">
-                            <label class="form-label fw-bold small text-secondary">নতুন দল নির্বাচন করুন</label>
+                            <label class="form-label fw-bold text-secondary ms-1">নতুন লক্ষ্যস্থল (New Sheet)</label>
                             <div class="input-group">
-                                <span class="input-group-text bg-light"><i class="fas fa-layer-group text-warning"></i></span>
-                                <select name="new_sheet_id" class="form-select border-warning" required>
-                                    <option value="" disabled selected>তালিকা থেকে দল বেছে নিন...</option>
+                                <span class="input-group-text bg-white border-warning"><i class="fas fa-layer-group text-warning"></i></span>
+                                <select name="new_sheet_id" class="form-select border-warning py-2" required>
+                                    <option value="" disabled selected>একটি শীট বা দল নির্বাচন করুন...</option>
                                     {% for s in sheets %}
-                                        <option value="{{ s._id|string }}" {% if s._id|string == c.sheet_id %}disabled{% endif %}>
-                                            {{ s.group_name }} ({{ s.village }})
+                                        <option value="{{ s._id|string }}" {% if s._id|string == customer.sheet_id %}disabled{% endif %}>
+                                            {{ s.group_name }} {% if s.village %}({{ s.village }}){% endif %}
                                         </option>
                                     {% endfor %}
                                 </select>
                             </div>
-                            <small class="text-muted small">গ্রাহককে যে নতুন দলে পাঠাতে চান সেটি সিলেক্ট করুন।</small>
+                            <div class="form-text text-muted small ms-1">দ্রষ্টব্য: বর্তমান শীটটি তালিকায় ডিজেবল অবস্থায় থাকবে।</div>
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label fw-bold small text-secondary">নতুন ক্রঃ নং (New SL No)</label>
+                            <label class="form-label fw-bold text-secondary ms-1">নতুন পজিশন (SL No)</label>
                             <div class="input-group">
-                                <span class="input-group-text bg-light"><i class="fas fa-sort-numeric-down text-warning"></i></span>
-                                <input type="text" name="new_sl_no" class="form-control border-warning" placeholder="যেমন: ০৫" required>
+                                <span class="input-group-text bg-white border-warning"><i class="fas fa-list-ol text-warning"></i></span>
+                                <input type="number" name="new_sl_no" class="form-control border-warning py-2" 
+                                       value="{{ customer.sl_no }}" placeholder="উদা: 05" required>
                             </div>
-                            <small class="text-muted small">নতুন দলে এই গ্রাহকের সিরিয়াল নম্বর কত হবে?</small>
+                            <div class="form-text text-muted small ms-1">নতুন শীটে সদস্যের সিরিয়াল নম্বর দিন।</div>
                         </div>
 
                         <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-warning btn-lg fw-bold shadow-sm py-3">
-                                <i class="fas fa-check-circle me-2"></i> কনফার্ম স্থানান্তর করুন
+                            <button type="submit" class="btn btn-warning btn-lg fw-bold py-3 shadow hover-scale">
+                                <i class="fas fa-check-circle me-2"></i> স্থানান্তর নিশ্চিত করুন
                             </button>
-                            <a href="{{ url_for('view_kisti_sheet', sheet_id=c.sheet_id) }}" class="btn btn-light border py-2">
-                                বাতিল করুন
+                            <a href="{{ url_for('search_to_move') }}" class="btn btn-light border-0 py-2">
+                                <i class="fas fa-times me-1"></i> বাতিল করুন
                             </a>
                         </div>
                     </form>
                 </div>
             </div>
             {% else %}
-            <div class="text-center py-5">
-                <div class="alert alert-danger">গ্রাহকের তথ্য লোড করা সম্ভব হয়নি!</div>
-                <a href="/" class="btn btn-primary">হোম পেজে ফিরে যান</a>
+            <div class="card border-0 shadow-lg p-5 text-center" style="border-radius: 20px;">
+                <div class="text-danger mb-3">
+                    <i class="fas fa-exclamation-triangle fa-4x"></i>
+                </div>
+                <h4 class="fw-bold">তথ্য পাওয়া যায়নি!</h4>
+                <p class="text-muted">অনুরোধকৃত সদস্যের তথ্য ডাটাবেসে পাওয়া সম্ভব হয়নি।</p>
+                <a href="{{ url_for('search_to_move') }}" class="btn btn-primary rounded-pill px-4">পুনরায় চেষ্টা করুন</a>
             </div>
             {% endif %}
         </div>
@@ -70,10 +87,16 @@
 
 <style>
     .form-select:focus, .form-control:focus {
-        border-color: #ffc107;
-        box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.15);
+        border-color: #ffc107 !important;
+        box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.15) !important;
     }
-    .card { overflow: hidden; }
-    .input-group-text { border-color: #ffc107; }
+    .hover-scale {
+        transition: transform 0.2s;
+    }
+    .hover-scale:hover {
+        transform: scale(1.02);
+    }
+    .bg-light { background-color: #f8f9fa !important; }
+    .rounded-4 { border-radius: 15px !important; }
 </style>
 {% endblock %}
