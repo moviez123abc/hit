@@ -93,7 +93,7 @@
       <div class="mb-3">
         <h6 class="fw-bold text-primary">
           <i class="fas fa-search me-2"></i>নতুন উপকরণ ও সদস্য যোগ/সংশোধন করতে সদস্যর নাম বা
-          হিসাব নম্বর নিচে দিয়ে সার্চ করুন:
+          হিসাব নম্বর নিচে দিয়ে সার্চ করুন:
         </h6>
       </div>
 
@@ -139,16 +139,14 @@
 
                     <div class="d-flex align-items-center flex-wrap">
                       <span class="text-muted x-small">
-                        A/C:
-                        <span class="fw-medium text-primary"
-                          >{{ c.acc_no }}</span
-                        >
+                        A/C: <span class="fw-medium text-primary">{{ c.acc_no }}</span>
                       </span>
+                      
                       <span class="mx-1 text-muted x-small">|</span>
-                      {% if sheets %}
-                      <span class="mx-1 text-muted x-small"
-                        >G: {{ c.group_name }}</span
-                      >{% endif %}
+                      
+                      <span class="text-muted x-small">
+                        Code: <span class="fw-medium text-success">#{{ c.code_no if c.code_no else '000' }}</span>
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -195,11 +193,7 @@
                   <a
                     href="/delete_customer_direct/{{ c._id|string }}"
                     class="btn btn-white btn-sm px-3 text-danger"
-                    onclick="
-                      return confirm(
-                        'আপনি কি নিশ্চিতভাবে এই গ্রাহককে ডিলিট করতে চান?',
-                      );
-                    "
+                    onclick="return confirm('আপনি কি নিশ্চিতভাবে এই গ্রাহককে ডিলিট করতে চান?');"
                     title="Delete"
                   >
                     <i class="fas fa-trash-alt"></i>
@@ -238,7 +232,6 @@
     $(".dataTables_filter input").addClass(
       "form-control shadow-none border-pill",
     );
-    // সার্চ বক্সের লেবেল সরিয়ে সরাসরি ইনপুট ফিল্ড সুন্দর করার জন্য
     $(".dataTables_filter label")
       .contents()
       .filter(function () {
@@ -249,47 +242,11 @@
 </script>
 
 <style>
-  .x-small {
-    font-size: 11px;
-  }
-  .transition-scale:hover {
-    transform: scale(1.01);
-    transition: 0.3s ease;
-  }
-  #customerTable thead th {
-    background-color: #f8fafc;
-    padding: 15px 12px;
-    color: #64748b;
-    font-weight: 700;
-  }
-  .btn-white {
-    background: #fff;
-    border: none;
-    transition: all 0.2s;
-  }
-  .btn-white:hover {
-    background: #f1f5f9;
-  }
-  .pagination-rounded .page-link {
-    border-radius: 50% !important;
-    margin: 0 3px;
-    border: none;
-    background: #f1f5f9;
-    color: #6366f1;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .pagination-rounded .page-item.active .page-link {
-    background: #6366f1;
-    color: white;
-  }
-  /* সার্চ ইনপুটকে আরও চওড়া করা */
-  .dataTables_filter input {
-    width: 300px !important;
-    margin-left: 0 !important;
-  }
+  .x-small { font-size: 11px; }
+  .transition-scale:hover { transform: scale(1.01); transition: 0.3s ease; }
+  #customerTable thead th { background-color: #f8fafc; padding: 15px 12px; color: #64748b; font-weight: 700; }
+  .btn-white { background: #fff; border: none; transition: all 0.2s; }
+  .btn-white:hover { background: #f1f5f9; }
+  .dataTables_filter input { width: 300px !important; margin-left: 0 !important; border-radius: 20px !important; }
 </style>
 {% endblock %}
