@@ -844,14 +844,40 @@ def delete_sheet(id):
         
     return redirect(url_for('index')) # আপনার প্রধান পেজের ফাংশন নাম দিন
 
+from bson import ObjectId
+
 @app.route('/manage_customers_page')
 def manage_customers_page():
     try:
-        # সব কাস্টমারকে নিয়ে আসা
+        # ১. সব কাস্টমারকে একবারে নিয়ে আসা
         customers = list(customers_col.find().sort("customer_name", 1))
         
+        # ২. সব ইউনিক sheet_id সংগ্রহ করা (ডুপ্লিকেট বাদ দিয়ে)
+        sheet_ids = []
         for c in customers:
-            # ১. ডাটাবেস থেকে আসা ভ্যালুগুলোকে নিরাপদভাবে সংখ্যায় রূপান্তর
+            sid = c.get('sheet_id')
+            if sid:
+                try:
+                    # আইডি স্ট্রিং হোক বা অবজেক্ট, সেটিকে ObjectId তে কনভার্ট করা
+                    sheet_ids.append(ObjectId(sid))
+                except:
+                    continue
+        
+        # ৩. এক কোয়েরিতে সব শীট ডাটা নিয়ে এসে ডিকশনারি (Map) তৈরি করা
+        # এটিই মূলত আপনার স্পিড বাড়িয়ে দেবে
+        sheets_map = {}
+        if sheet_ids:
+            # $in ব্যবহার করে সব আইডি একসাথে সার্চ করা
+            sheets_data = list(sheets_col.find({"_id": {"$in": sheet_ids}}))
+            for s in sheets_data:
+                sheets_map[str(s['_id'])] = {
+                    'group_name': s.get('group_name', 'N/A'),
+                    'code_no': s.get('code_no', '000')
+                }
+
+        # ৪. কাস্টমারদের ডাটা প্রসেস করা (এখন আর ডাটাবেস কল হবে না)
+        for c in customers:
+            # সংখ্যার রূপান্তর (Safe Conversion)
             try:
                 c['cost_price'] = float(c.get('cost_price') or 0)
                 c['profit'] = float(c.get('profit') or 0)
@@ -861,31 +887,21 @@ def manage_customers_page():
                 c['profit'] = 0.0
                 c['per_kisti'] = 0.0
 
-            # ২. sheet_id ব্যবহার করে sheets কালেকশন থেকে Group Name এবং Code আনা
-            sheet_id = c.get('sheet_id')
-            if sheet_id:
-                try:
-                    # আইডি যদি স্ট্রিং হিসেবে থাকে তবে ObjectId তে কনভার্ট করে সার্চ করা
-                    sheet_data = sheets_col.find_one({"_id": ObjectId(sheet_id)})
-                    if sheet_data:
-                        c['group_name'] = sheet_data.get('group_name', 'N/A')
-                        c['code_no'] = sheet_data.get('code_no', '000') # আপনার ডাটাবেসে যে নামে আছে
-                    else:
-                        c['group_name'] = 'Unknown'
-                        c['code_no'] = '000'
-                except:
-                    c['group_name'] = 'Invalid ID'
-                    c['code_no'] = '000'
+            # ম্যাপ থেকে ডাটা বসানো (সুপার ফাস্ট লুকআপ)
+            s_id_str = str(c.get('sheet_id'))
+            if s_id_str in sheets_map:
+                c['group_name'] = sheets_map[s_id_str]['group_name']
+                c['code_no'] = sheets_map[s_id_str]['code_no']
             else:
-                c['group_name'] = 'No Group'
+                c['group_name'] = 'N/A'
                 c['code_no'] = '000'
                 
         return render_template('manage_customers.html', customers=customers)
     
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error in manage_customers_page: {e}")
         return "Internal Server Error", 500
-
+        
 # কাস্টমার ডিলিট করার রাউট
 @app.route('/delete_customer_direct/<cust_id>')
 def delete_customer_direct(cust_id):
