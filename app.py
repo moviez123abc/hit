@@ -1137,23 +1137,70 @@ def print_docs():
 def page_not_found(e):
     return "404 - পেজটি খুঁজে পাওয়া যায়নি", 404
 
+from bson import ObjectId
+
 @app.route('/search_to_move', methods=['GET', 'POST'])
 @login_required
 def search_to_move():
     if request.method == 'POST':
-        acc_no = request.form.get('acc_no')
-        # হিসাব নম্বর দিয়ে সদস্য খোঁজা
-        customer = customers_col.find_one({"acc_no": acc_no})
+        # .strip() ব্যবহার করা হয়েছে যাতে বাড়তি স্পেস এরর না দেয়
+        acc_no_input = request.form.get('acc_no', '').strip()
+        
+        # ডাটাবেসে acc_no স্ট্রিং বা নাম্বার যেভাবেই থাকুক, তা খোঁজার চেষ্টা করবে
+        query = {
+            "$or": [
+                {"acc_no": acc_no_input},
+                {"acc_no": int(acc_no_input) if acc_no_input.isdigit() else None}
+            ]
+        }
+        customer = customers_col.find_one(query)
         
         if customer:
-            # যদি পাওয়া যায়, তবে স্থানান্তর পেজে পাঠিয়ে দেওয়া
             return redirect(url_for('move_customer_page', cust_id=str(customer['_id'])))
         else:
-            flash(f"হিসাব নং '{acc_no}' দিয়ে কোনো সদস্য পাওয়া যায়নি!", "danger")
+            flash(f"হিসাব নং '{acc_no_input}' পাওয়া যায়নি!", "danger")
             return redirect(url_for('search_to_move'))
             
     return render_template('search_move.html')
 
+@app.route('/move_customer/<cust_id>', methods=['GET', 'POST'])
+@login_required
+def move_customer_page(cust_id):
+    if request.method == 'POST':
+        new_sheet_id = request.form.get('new_sheet_id')
+        new_sl_no = request.form.get('new_sl_no')
+
+        if not new_sheet_id or not new_sl_no:
+            flash("সব তথ্য পূরণ করুন!", "warning")
+            return redirect(url_for('move_customer_page', cust_id=cust_id))
+
+        # নতুন শীটের নাম খুঁজে বের করা (যাতে কাস্টমার ডাটাতে শীটের নামও আপডেট হয়)
+        target_sheet = sheets_col.find_one({"_id": ObjectId(new_sheet_id)})
+        
+        if target_sheet:
+            customers_col.update_one(
+                {"_id": ObjectId(cust_id)},
+                {"$set": {
+                    "sheet_id": new_sheet_id,
+                    "sheet_name": target_sheet.get('group_name'), # শীট নাম আপডেট
+                    "sl_no": new_sl_no # সিরিয়াল আপডেট
+                }}
+            )
+            flash("স্থানান্তর সফল হয়েছে।", "success")
+            return redirect(url_for('view_kisti_sheet', sheet_id=new_sheet_id))
+        else:
+            flash("টার্গেট শীট খুঁজে পাওয়া যায়নি!", "danger")
+
+    # কাস্টমারের তথ্য আনা
+    customer = customers_col.find_one({"_id": ObjectId(cust_id)})
+    if not customer:
+        flash("সদস্য পাওয়া যায়নি!", "danger")
+        return redirect(url_for('search_to_move'))
+    
+    # সব শীটের তালিকা আনা
+    all_sheets = list(sheets_col.find().sort("group_name", 1))
+    
+    return render_template('move_customer.html', customer=customer, sheets=all_sheets)
 
 if __name__ == '__main__':
     create_default_admin() # এই লাইনটি যোগ করা হয়েছে
