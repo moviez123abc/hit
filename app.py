@@ -851,8 +851,7 @@ def manage_customers_page():
         customers = list(customers_col.find().sort("customer_name", 1))
         
         for c in customers:
-            # ডাটাবেস থেকে আসা ভ্যালুগুলোকে নিরাপদভাবে সংখ্যায় রূপান্তর (Safe Conversion)
-            # যদি ভ্যালু না থাকে বা স্ট্রিং হয়, তবে সেটি ০.০ হয়ে যাবে
+            # ১. ডাটাবেস থেকে আসা ভ্যালুগুলোকে নিরাপদভাবে সংখ্যায় রূপান্তর
             try:
                 c['cost_price'] = float(c.get('cost_price') or 0)
                 c['profit'] = float(c.get('profit') or 0)
@@ -861,6 +860,25 @@ def manage_customers_page():
                 c['cost_price'] = 0.0
                 c['profit'] = 0.0
                 c['per_kisti'] = 0.0
+
+            # ২. sheet_id ব্যবহার করে sheets কালেকশন থেকে Group Name এবং Code আনা
+            sheet_id = c.get('sheet_id')
+            if sheet_id:
+                try:
+                    # আইডি যদি স্ট্রিং হিসেবে থাকে তবে ObjectId তে কনভার্ট করে সার্চ করা
+                    sheet_data = sheets_col.find_one({"_id": ObjectId(sheet_id)})
+                    if sheet_data:
+                        c['group_name'] = sheet_data.get('group_name', 'N/A')
+                        c['code_no'] = sheet_data.get('code_no', '000') # আপনার ডাটাবেসে যে নামে আছে
+                    else:
+                        c['group_name'] = 'Unknown'
+                        c['code_no'] = '000'
+                except:
+                    c['group_name'] = 'Invalid ID'
+                    c['code_no'] = '000'
+            else:
+                c['group_name'] = 'No Group'
+                c['code_no'] = '000'
                 
         return render_template('manage_customers.html', customers=customers)
     
