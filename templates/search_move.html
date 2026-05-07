@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-5 col-md-7">
+            <div class="card shadow-lg border-0 overflow-hidden" style="border-radius: 25px;">
+                <div class="card-header bg-gradient-primary text-white p-4 text-center border-0" 
+                     style="background: linear-gradient(45deg, #1e3a8a, #2563eb);">
+                    <div class="mb-2">
+                        <i class="fas fa-exchange-alt fa-3x"></i>
+                    </div>
+                    <h4 class="mb-1 fw-bold">সদস্য স্থানান্তর</h4>
+                    <p class="small mb-0 opacity-75">হিসাব নম্বর দিয়ে দ্রুত সদস্য খুঁজে বের করুন</p>
+                </div>
+                
+                <div class="card-body p-4 p-md-5">
+                    <form action="{{ url_for('search_to_move') }}" method="POST">
+                        <div class="mb-4">
+                            <label class="form-label text-dark fw-semibold ms-2">সদস্যের হিসাব নম্বর</label>
+                            <div class="input-group input-group-lg custom-input-group">
+                                <span class="input-group-text bg-light border-end-0 rounded-start-pill ps-4 text-primary">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" name="acc_no" 
+                                       class="form-control bg-light border-start-0 rounded-end-pill px-3" 
+                                       placeholder="উদা: A-101" 
+                                       required autofocus>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-3">
+                            <button type="submit" class="btn btn-primary btn-lg rounded-pill py-3 shadow hover-lift">
+                                <i class="fas fa-arrow-right me-2"></i> তথ্য যাচাই করুন
+                            </button>
+                            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary rounded-pill py-2">
+                                <i class="fas fa-home me-1"></i> ড্যাশবোর্ডে ফিরে যান
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} mt-4 border-0 shadow-sm animate__animated animate__shakeX" 
+                             style="border-radius: 15px;">
+                            <i class="fas {% if category == 'danger' %}fa-exclamation-circle{% else %}fa-check-circle{% endif %} me-2"></i>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+    </div>
+</div>
+
+<style>
+    /* কাস্টম ডিজাইন এলিমেন্ট */
+    .bg-gradient-primary {
+        background: linear-gradient(45deg, #2563eb, #1d4ed8);
+    }
+    
+    .custom-input-group .form-control:focus {
+        box-shadow: none;
+        background-color: #fff !important;
+        border-color: #2563eb;
+    }
+    
+    .hover-lift {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(37, 99, 235, 0.2) !important;
+    }
+
+    .rounded-start-pill {
+        border-top-left-radius: 50px !important;
+        border-bottom-left-radius: 50px !important;
+    }
+
+    .rounded-end-pill {
+        border-top-right-radius: 50px !important;
+        border-bottom-right-radius: 50px !important;
+    }
+</style>
+{% endblock %}
