@@ -42,7 +42,8 @@
                                     <option value="" disabled selected>একটি শীট বা দল নির্বাচন করুন...</option>
                                     {% for s in sheets %}
                                         <option value="{{ s._id|string }}" {% if s._id|string == customer.sheet_id %}disabled{% endif %}>
-                                            {{ s.group_name }} {% if s.village %}({{ s.village }}){% endif %}
+                                            [{{ s.code_no if s.code_no else 'N/A' }}] - {{ s.group_name }} 
+                                            {% if s.village %}({{ s.village }}){% endif %}
                                         </option>
                                     {% endfor %}
                                 </select>
