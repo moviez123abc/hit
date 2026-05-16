@@ -289,9 +289,48 @@
       </table>
 
       <table class="main-table">
+        <colgroup>
+          <col style="width: 25px" />   <!-- ক্রঃ নং -->
+          <col style="width: 125px" />  <!-- সদস্যের নাম -->
+          <col style="width: 40px" />   <!-- দল ভুক্ত হওয়ার তাং -->
+          <col style="width: 32px" />   <!-- হিসাব নং -->
+          <col style="width: 25px" />   <!-- পরিশোধিত মাস -->
+          <col style="width: 110px" />  <!-- উপকরণের নাম (wider) -->
+          <col style="width: 40px" />   <!-- বিতরণ তারিখ -->
+          <col style="width: 35px" />   <!-- মূল্য -->
+          <col style="width: 32px" />   <!-- সার্ভিস চার্জ -->
+          <col style="width: 40px" />   <!-- সার্ভিস চার্জ সহ মূল্য -->
+          <col style="width: 30px" />   <!-- সাপ্তাহিক মূল্য -->
+          <col style="width: 28px" />   <!-- মোট সপ্তাহ -->
+          <col style="width: 28px" />   <!-- আদায়কৃত সপ্তাহ -->
+          <col style="width: 28px" />   <!-- চলমান সপ্তাহ -->
+          <col style="width: 28px" />   <!-- বাকি সপ্তাহ -->
+          <col style="width: 32px" />   <!-- অতিরিক্ত উপকরণের মূল্য -->
+          <col style="width: 35px" />   <!-- মোট নগদ -->
+          <col style="width: 35px" />   <!-- মোট মূল্য -->
+          <col style="width: 28px" />   <!-- kisti date 1 -->
+          <col style="width: 28px" />   <!-- kisti date 2 -->
+          <col style="width: 28px" />   <!-- kisti date 3 -->
+          <col style="width: 28px" />   <!-- kisti date 4 -->
+          <col style="width: 28px" />   <!-- kisti date 5 -->
+          <col style="width: 35px" />   <!-- মাসের নগদ আদায় -->
+          <col style="width: 42px" />   <!-- নগদ ফেরত তাং -->
+          <col style="width: 30px" />   <!-- নগদ ফেরত -->
+          <col style="width: 35px" />   <!-- অবশিষ্ট নগদ স্থিতি -->
+          <col style="width: 28px" />   <!-- price date 1 -->
+          <col style="width: 28px" />   <!-- price date 2 -->
+          <col style="width: 28px" />   <!-- price date 3 -->
+          <col style="width: 28px" />   <!-- price date 4 -->
+          <col style="width: 28px" />   <!-- price date 5 -->
+          <col style="width: 35px" />   <!-- মাসের মূল্য আদায় -->
+          <col style="width: 42px" />   <!-- মূল্যছাড় তাং -->
+          <col style="width: 30px" />   <!-- মূল্য ছাড় -->
+          <col style="width: 35px" />   <!-- অবশিষ্ট মূল্য স্থিতি -->
+          <col style="width: 75px" />   <!-- ভর্তি/ফরম/বিবিধ -->
+        </colgroup>
         <thead>
           <tr>
-            <th rowspan="2" style="width: 25px">ক্রঃ<br />নং</th>
+            <th rowspan="2">ক্রঃ<br />নং</th>
             <th
               rowspan="2"
               class="name-cell"
@@ -299,74 +338,74 @@
             >
               সদস্যের নাম
             </th>
-            <th rowspan="2" style="width: 40px">
+            <th rowspan="2">
               <span class="v-text">দল ভুক্ত হওয়ার তাং</span>
             </th>
-            <th rowspan="2" style="width: 32px">
+            <th rowspan="2">
               <span class="v-text">হিসাব নং</span>
             </th>
-            <th rowspan="2" style="width: 25px">
+            <th rowspan="2">
               <span class="v-text">পরিশোধিত মাস</span>
             </th>
             <th colspan="11">উপকরণের বিবরণ</th>
             <th colspan="2">গত মাসের জের</th>
             <th colspan="9">সাপ্তাহিক নগদ আদায়</th>
             <th colspan="9">সাপ্তাহিক মূল্য আদায়</th>
-            <th rowspan="2" style="width: 75px">
+            <th rowspan="2">
               <span>ভর্তি/ফরম/বিবিধ</span>
             </th>
           </tr>
           <tr>
-            <th style="width: 65px">উপকরণের নাম</th>
-            <th style="width: 40px">বিতরণ তারিখ</th>
-            <th style="width: 35px"><span class="v-text">মূল্য</span></th>
-            <th style="width: 32px">
+            <th>উপকরণের নাম</th>
+            <th>বিতরণ তারিখ</th>
+            <th><span class="v-text">মূল্য</span></th>
+            <th>
               <span class="v-text">সার্ভিস চার্জ</span>
             </th>
-            <th style="width: 40px">
+            <th>
               <span class="v-text">সার্ভিস চার্জ সহ মূল্য</span>
             </th>
-            <th style="width: 30px">
+            <th>
               <span class="v-text">সাপ্তাহিক মূল্য</span>
             </th>
-            <th style="width: 28px"><span class="v-text">মোট সপ্তাহ</span></th>
-            <th style="width: 28px">
+            <th><span class="v-text">মোট সপ্তাহ</span></th>
+            <th>
               <span class="v-text">আদায়কৃত সপ্তাহ</span>
             </th>
-            <th style="width: 28px">
+            <th>
               <span class="v-text">চলমান সপ্তাহ</span>
             </th>
-            <th style="width: 28px"><span class="v-text">বাকি সপ্তাহ</span></th>
-            <th style="width: 32px">
+            <th><span class="v-text">বাকি সপ্তাহ</span></th>
+            <th>
               <span class="v-text">অতিরিক্ত উপকরণের মূল্য</span>
             </th>
 
-            <th style="width: 35px">মোট নগদ</th>
-            <th style="width: 35px">মোট মূল্য</th>
+            <th>মোট নগদ</th>
+            <th>মোট মূল্য</th>
             {% for date in col_dates[:5] %}
-            <th style="width: 28px; font-size: 6px">{{ date }}</th>
+            <th style="font-size: 6px">{{ date }}</th>
             {% endfor %}
-            <th class="bg-gray" style="width: 35px">
+            <th class="bg-gray">
               <span class="v-text">মাসের নগদ আদায়</span>
             </th>
-            <th style="width: 42px">
+            <th>
               <span class="v-text">নগদ ফেরত তাং</span>
             </th>
-            <th style="width: 30px">নগদ ফেরত</th>
-            <th style="width: 35px">
+            <th>নগদ ফেরত</th>
+            <th>
               <span class="v-text">অবশিষ্ট নগদ স্থিতি</span>
             </th>
             {% for date in col_dates[:5] %}
-            <th style="width: 28px; font-size: 6px">{{ date }}</th>
+            <th style="font-size: 6px">{{ date }}</th>
             {% endfor %}
-            <th class="bg-gray" style="width: 35px">
+            <th class="bg-gray">
               <span class="v-text">মাসের মূল্য আদায়</span>
             </th>
-            <th style="width: 42px">
+            <th>
               <span class="v-text">মূল্যছাড় তাং</span>
             </th>
-            <th style="width: 30px">মূল্য ছাড়</th>
-            <th style="width: 35px">
+            <th>মূল্য ছাড়</th>
+            <th>
               <span class="v-text">অবশিষ্ট মূল্য স্থিতি</span>
             </th>
           </tr>
@@ -388,7 +427,7 @@
             <td>{{ c.acc_no }}</td>
             <td>{{ c.duration_months or '' }}</td>
 
-            <td style="width: 100px">
+            <td style="width: 140px">
               {{ c.product_name or '' }} {% for ep in c.extra_products %}<span
                 class="extra-val"
                 >● {{ ep.p_name }}</span
