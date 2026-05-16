@@ -179,12 +179,22 @@
         margin-top: 1px;
         line-height: 1;
       }
+      /* Divider line for cells that only need the line (no value shown for extra products) */
+      .extra-div {
+        display: block;
+        border-top: 0.5px solid #000;
+        margin-top: 1px;
+        line-height: 1;
+        font-size: 7px;
+        font-weight: 700;
+        min-height: 8px;
+      }
     </style>
   </head>
   <body onload="window.print()">
     {% set t = namespace(cost=0, profit=0, full=0, prev_n=0, prev_m=0,
     k_days=[0,0,0,0,0], p_days=[0,0,0,0,0], total_ret_n=0, total_disc_m=0,
-    total_bal_n=0, total_bal_m=0, ep_total_sum=0) %} {% for c in customers %} {%
+    total_bal_n=0, total_bal_m=0, ep_total_sum=0, total_weekly_price=0) %} {% for c in customers %} {%
     set col = c.collections if (c.collections is mapping) else {} %} {% set m_cp
     = c.cost_price|default(0)|float %} {% set m_pp = c.profit|default(0)|float
     %} {% set t.cost = t.cost + m_cp %} {% set t.profit = t.profit + m_pp %} {%
@@ -206,7 +216,12 @@
     t.p_days.__setitem__(i, t.p_days[i] + val_p) %} {% endfor %} {% set
     t.total_bal_n = t.total_bal_n + (k_list|sum if k_list else 0) -
     col.get('return_cash', 0)|float %} {% set t.total_bal_m = t.total_bal_m +
-    (p_list|sum if p_list else 0) + col.get('discount', 0)|float %} {% endfor %}
+    (p_list|sum if p_list else 0) + col.get('discount', 0)|float %}
+    {# accumulate total weekly price: main product + all extra products #}
+    {% set rw_t = namespace(total=c.per_kisti|default(0)|float) %}
+    {% for ep in c.extra_products %}{% set rw_t.total = rw_t.total + ep.p_kisti|default(0)|float %}{% endfor %}
+    {% set t.total_weekly_price = t.total_weekly_price + rw_t.total %}
+    {% endfor %}
     {% for batch in customers|batch(20) %}
     <div
       class="container-fluid py-1 {% if not loop.last %}page-break{% endif %}"
@@ -301,6 +316,7 @@
           <col style="width: 32px" />   <!-- সার্ভিস চার্জ -->
           <col style="width: 40px" />   <!-- সার্ভিস চার্জ সহ মূল্য -->
           <col style="width: 30px" />   <!-- সাপ্তাহিক মূল্য -->
+          <col style="width: 32px" />   <!-- মোট সাপ্তাহিক মূল্য (NEW) -->
           <col style="width: 28px" />   <!-- মোট সপ্তাহ -->
           <col style="width: 28px" />   <!-- আদায়কৃত সপ্তাহ -->
           <col style="width: 28px" />   <!-- চলমান সপ্তাহ -->
@@ -347,7 +363,7 @@
             <th rowspan="2">
               <span class="v-text">পরিশোধিত মাস</span>
             </th>
-            <th colspan="11">উপকরণের বিবরণ</th>
+            <th colspan="12">উপকরণের বিবরণ</th>
             <th colspan="2">গত মাসের জের</th>
             <th colspan="9">সাপ্তাহিক নগদ আদায়</th>
             <th colspan="9">সাপ্তাহিক মূল্য আদায়</th>
@@ -367,6 +383,10 @@
             </th>
             <th>
               <span class="v-text">সাপ্তাহিক মূল্য</span>
+            </th>
+            <!-- NEW COLUMN HEADER -->
+            <th>
+              <span class="v-text">মোট সাপ্তাহিক মূল্য</span>
             </th>
             <th><span class="v-text">মোট সপ্তাহ</span></th>
             <th>
@@ -414,6 +434,10 @@
           {% for c in batch %} {% set col = c.collections if (c.collections is
           mapping) else {} %} {% set cost = c.cost_price|default(0)|float %} {%
           set profit = c.profit|default(0)|float %}
+          {# compute total weekly price: main + all extra products #}
+          {% set rw = namespace(total=c.per_kisti|default(0)|float) %}
+          {% for ep in c.extra_products %}{% set rw.total = rw.total + ep.p_kisti|default(0)|float %}{% endfor %}
+          {% set row_weekly_total = rw.total %}
           <tr>
             <td>{{ c.sl_no }}</td>
             <td class="name-cell">{{ c.customer_name }}</td>
@@ -462,19 +486,38 @@
                 (ep.p_price|float + ep.p_profit|float) > 0 else '' }}</span
               >{% endfor %}
             </td>
+            <!-- সাপ্তাহিক মূল্য: main product per_kisti, with extra-val divider lines for each extra product -->
             <td>
               {{ c.per_kisti|int if c.per_kisti else '' }} {% for ep in
               c.extra_products %}<span class="extra-val"
                 >{{ ep.p_kisti|int if ep.p_kisti|float > 0 else '' }}</span
               >{% endfor %}
             </td>
-            <td>{{ c.total_kisti if c.total_kisti|int > 0 else '' }}</td>
-            <td>{{ c.paid_kisti if c.paid_kisti|int > 0 else '' }}</td>
-            <td class="fw-bold">{{ col.get('running_kisti', '') }}</td>
+            <!-- NEW: মোট সাপ্তাহিক মূল্য — sum of main + all extra per_kisti; shown once, no extra-val rows needed -->
+            <td class="fw-bold">
+              {{ row_weekly_total|int if row_weekly_total > 0 else '' }}
+            </td>
+            <!-- মোট সপ্তাহ: main, then divider-only lines for extras -->
+            <td>
+              {{ c.total_kisti if c.total_kisti|int > 0 else '' }}
+              {% for ep in c.extra_products %}<span class="extra-div">&nbsp;</span>{% endfor %}
+            </td>
+            <!-- আদায়কৃত সপ্তাহ: main, then divider-only lines for extras -->
+            <td>
+              {{ c.paid_kisti if c.paid_kisti|int > 0 else '' }}
+              {% for ep in c.extra_products %}<span class="extra-div">&nbsp;</span>{% endfor %}
+            </td>
+            <!-- চলমান সপ্তাহ: main, then divider-only lines for extras -->
+            <td class="fw-bold">
+              {{ col.get('running_kisti', '') }}
+              {% for ep in c.extra_products %}<span class="extra-div">&nbsp;</span>{% endfor %}
+            </td>
+            <!-- বাকি সপ্তাহ: main, then divider-only lines for extras -->
             <td class="text-danger fw-bold">
               {% set remaining = (c.total_kisti|default(0)|int -
               c.paid_kisti|default(0)|int) %}{{ remaining if remaining > 0 else
               '' }}
+              {% for ep in c.extra_products %}<span class="extra-div">&nbsp;</span>{% endfor %}
             </td>
             <td>
               {% set ep_total = 0 %} {% for ep in c.extra_products %}{% set
@@ -558,6 +601,8 @@
             <td>{{ t.profit|int if t.profit > 0 else '' }}</td>
             <td class="bg-gray">{{ t.full|int if t.full > 0 else '' }}</td>
             <td></td>
+            <!-- NEW: total weekly price total row -->
+            <td class="fw-bold">{{ t.total_weekly_price|int if t.total_weekly_price > 0 else '' }}</td>
             <td></td>
             <td></td>
             <td></td>
