@@ -3,324 +3,666 @@
 {% block title %}কালেকশন শীট | {{ sheet.group_name }}{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4" style="background-color: #f1f5f9;">
-    <div class="card shadow-sm border-0 mb-4" style="border-radius: 15px; border-left: 5px solid #6366f1;">
-        <div class="card-body p-4 d-flex justify-content-between align-items-center bg-white rounded-3">
-            <div>
-                <h3 class="fw-bold text-dark mb-1">
-                    <i class="fas fa-file-invoice-dollar me-2 text-primary"></i>
-                    আদায়শীট: <span class="text-primary">{{ sheet.group_name }}</span>
+<div class="container-fluid py-4 ks-page">
+
+    {# ── TOP HEADER CARD ── #}
+    <div class="ks-header-card mb-4">
+        <div class="ks-header-inner">
+            <div class="ks-header-info">
+                <h3 class="ks-title">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    আদায়শীট: <span class="ks-group-name">{{ sheet.group_name }}</span>
                 </h3>
-                <p class="text-muted mb-0 small">
-                    <i class="fas fa-barcode me-1"></i> কোড: <b>{{ sheet.code_no or 'N/A' }}</b> | 
-                    <i class="fas fa-map-marker-alt me-1"></i> গ্রাম: <b>{{ sheet.village or 'N/A' }}</b> |
-                    <i class="fas fa-calendar-alt me-1"></i> মাস: <b>{{ sheet.month }} {{ sheet.year }}</b>
+                <p class="ks-meta">
+                    <span><i class="fas fa-barcode"></i> কোড: <b>{{ sheet.code_no or 'N/A' }}</b></span>
+                    <span><i class="fas fa-map-marker-alt"></i> গ্রাম: <b>{{ sheet.village or 'N/A' }}</b></span>
+                    <span><i class="fas fa-calendar-alt"></i> মাস: <b>{{ sheet.month }} {{ sheet.year }}</b></span>
                 </p>
             </div>
-            <div class="d-flex flex-column flex-sm-row justify-content-center gap-2 w-100">
-                <button type="button" class="btn-responsive btn btn-danger rounded-pill px-4 shadow-sm text-white fw-bold" onclick="handleAllNil()">
-                    <i class="fas fa-undo-alt me-2"></i> অল নিল (Nil All)
+            <div class="ks-header-actions">
+                <button type="button" class="ks-btn ks-btn-danger" onclick="handleAllNil()">
+                    <i class="fas fa-undo-alt"></i> অল নিল
                 </button>
-                <a href="/print_kisti/{{ sheet._id|string }}" target="_blank" class="btn-responsive btn btn-success rounded-pill px-4 shadow-sm text-white fw-bold">
-                    <i class="fas fa-print me-2"></i> রিপোর্ট প্রিন্ট
+                <a href="/print_kisti/{{ sheet._id|string }}" target="_blank" class="ks-btn ks-btn-success">
+                    <i class="fas fa-print"></i> প্রিন্ট
                 </a>
-                <button type="button" class="btn-responsive btn btn btn-warning rounded-pill px-4 shadow-sm text-white fw-bold" onclick="document.getElementById('main-form').submit()">
-                    <i class="fas fa-save me-2"></i> দ্রুত সেভ করুন
+                <button type="button" class="ks-btn ks-btn-warning" onclick="document.getElementById('main-form').submit()">
+                    <i class="fas fa-save"></i> দ্রুত সেভ
                 </button>
             </div>
         </div>
     </div>
 
+    {# ── MAIN FORM ── #}
     <form id="main-form" action="/save_kisti/{{ sheet._id|string }}" method="POST">
-        <div class="card border-0 shadow-sm overflow-hidden" style="border-radius: 15px;">
+        <div class="ks-table-wrap">
             <div class="table-responsive">
-                <table class="table table-bordered table-sm align-middle text-center mb-0" style="font-size: 11px; min-width: 4500px;">
-                    <thead class="bg-dark text-white text-uppercase">
-                        <tr>
-                            <th rowspan="2" class="align-middle bg-danger">অ্যাকশন</th>
-                            <th rowspan="2" class="align-middle">ক্রঃ নং</th>
-                            <th rowspan="2" class="align-middle" style="min-width: 180px;">সদস্যের নাম</th>
-                            <th rowspan="2" class="align-middle bg-secondary text-white">দলভুক্ত হওয়ার তারিখ</th>
-                            <th rowspan="2" class="align-middle">হিসাব নং</th>
-                            <th rowspan="2" class="align-middle bg-info text-dark">পরিশোধ মাস</th>
-                            <th colspan="11" class="bg-primary text-white">উপকরণের বিবরণ</th> <th colspan="2" class="bg-secondary text-white">গত মাসের জের</th>
-                            <th colspan="9" class="bg-primary text-white">সাপ্তাহিক নগদ আদায়</th>
-                            <th colspan="9" class="bg-success text-white">সাপ্তাহিক মূল্য আদায়</th>
-                            <th rowspan="2" class="align-middle border-start bg-dark text-white" style="min-width: 150px;">ভর্তি/ফরম/বিবিধ</th>
+                <table class="ks-table" id="main-table">
+                    <thead>
+                        <tr class="ks-thead-top">
+                            <th rowspan="2" class="col-action bg-danger-h">অ্যাকশন</th>
+                            <th rowspan="2" class="col-sl">ক্রঃ নং</th>
+                            <th rowspan="2" class="col-name">সদস্যের নাম</th>
+                            <th rowspan="2" class="col-date bg-secondary-h">দলভুক্ত তারিখ</th>
+                            <th rowspan="2" class="col-acc">হিসাব নং</th>
+                            <th rowspan="2" class="col-dur bg-info-h">পরিশোধ মাস</th>
+                            <th colspan="11" class="bg-primary-h">উপকরণের বিবরণ</th>
+                            <th colspan="2" class="bg-secondary-h">গত মাসের জের</th>
+                            <th colspan="9" class="bg-primary-h">সাপ্তাহিক নগদ আদায়</th>
+                            <th colspan="9" class="bg-success-h">সাপ্তাহিক মূল্য আদায়</th>
+                            <th rowspan="2" class="col-comment bg-dark-h">ভর্তি/ফরম/বিবিধ</th>
                         </tr>
-                        <tr>
-                            <th class="bg-light text-dark" style="min-width: 130px;">উপকরণের নাম</th>
-                            <th class="bg-light text-dark" style="min-width: 100px;">বিতরণ তারিখ</th>
-                            <th class="bg-light text-dark">মূল্য</th>
-                            <th class="bg-light text-dark">সার্ভিস চার্জ</th>
-                            <th class="bg-light text-dark">সার্ভিস চার্জ সহ মূল্য</th>
-                            <th class="bg-light text-dark">সাপ্তাহিক মূল্য</th>
-                            <th class="bg-warning-subtle text-dark">মোট সপ্তাহ</th>
-                            <th class="bg-warning-subtle text-dark">আদায়কৃত সপ্তাহ</th>
-                            <th class="bg-info text-dark">চলমান সপ্তাহ</th> <th class="bg-warning-subtle text-dark">বাকি সপ্তাহ</th>
-                            <th class="bg-info-subtle text-dark" style="min-width: 200px;">অতিরিক্ত উপকরণের মূল্য (সিলেক্ট করুন)</th>
-
-                            <th class="bg-light text-dark">মোট নগদ</th>
-                            <th class="bg-light text-dark">মোট মূল্য</th>
-                            {% for date in col_dates[:5] %} <th class="bg-light text-dark">{{ date }}</th> {% endfor %}
-                            <th class="bg-light text-dark fw-bold">মোট নগদ আদায়</th>
-                            <th class="bg-warning text-dark">নগদ ফেরত তাং</th>
-                            <th class="bg-warning text-dark">নগদ ফেরত</th>
-                            <th class="bg-danger-subtle text-danger fw-bold">অবশিষ্ট নগদ স্থিতি</th>
-                            {% for date in col_dates[:5] %} <th class="bg-light text-dark">{{ date }}</th> {% endfor %}
-                            <th class="bg-light text-dark fw-bold">মোট মূল্য আদায়</th>
-                            <th class="bg-warning text-dark">মূল্যছাড় তাং</th>
-                            <th class="bg-warning text-dark">মূল্য ছাড়</th>
-                            <th class="bg-info-subtle text-dark fw-bold">অবশিষ্ট মূল্য স্থিতি</th>
+                        <tr class="ks-thead-sub">
+                            <th class="bg-light-h" style="min-width:130px">উপকরণের নাম</th>
+                            <th class="bg-light-h" style="min-width:100px">বিতরণ তারিখ</th>
+                            <th class="bg-light-h">মূল্য</th>
+                            <th class="bg-light-h">সার্ভিস চার্জ</th>
+                            <th class="bg-light-h">চার্জ সহ মূল্য</th>
+                            <th class="bg-light-h">সাপ্তাহিক মূল্য</th>
+                            <th class="bg-warn-h">মোট সপ্তাহ</th>
+                            <th class="bg-warn-h">আদায় সপ্তাহ</th>
+                            <th class="bg-info-h">চলমান সপ্তাহ</th>
+                            <th class="bg-warn-h">বাকি সপ্তাহ</th>
+                            <th class="bg-info-h" style="min-width:200px">অতিরিক্ত উপকরণ</th>
+                            <th class="bg-light-h">মোট নগদ জের</th>
+                            <th class="bg-light-h">মোট মূল্য জের</th>
+                            {% for date in col_dates[:5] %}
+                            <th class="bg-light-h">{{ date }}</th>
+                            {% endfor %}
+                            <th class="bg-light-h fw-b">মোট নগদ</th>
+                            <th class="bg-warn-h">নগদ ফেরত তাং</th>
+                            <th class="bg-warn-h">নগদ ফেরত</th>
+                            <th class="bg-danger-h fw-b">অবশিষ্ট নগদ</th>
+                            {% for date in col_dates[:5] %}
+                            <th class="bg-light-h">{{ date }}</th>
+                            {% endfor %}
+                            <th class="bg-light-h fw-b">মোট মূল্য</th>
+                            <th class="bg-warn-h">মূল্যছাড় তাং</th>
+                            <th class="bg-warn-h">মূল্য ছাড়</th>
+                            <th class="bg-info-h fw-b">অবশিষ্ট মূল্য</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for c in customers %}
                         {% set col = c.collections if (c.collections is mapping) else {} %}
-                        {% set is_already_niled = col.get('nil_status') == 'true' %}
-                        
-                        <tr data-cid="{{ c._id }}">
-                            <td class="bg-light">
-                                <input type="hidden" name="nil_status_{{ c._id }}" id="nil_status_input_{{ c._id }}" value="{{ col.get('nil_status', 'false') }}">
-                                <button type="button" class="btn btn-outline-danger btn-xs fw-bold" onclick="handleSingleNil('{{ c._id }}', this.closest('tr'))">Nil</button>
-                            </td>
-                            <td>{{ c.sl_no }}</td>
-                            <td class="text-start ps-2"><b>{{ c.customer_name }}</b></td>
-                            <td><input type="date" name="join_date_{{ c._id }}" class="ins-input-sm" value="{{ c.join_date or '' }}"></td>
-                            <td>{{ c.acc_no }}</td>
-                            <td><input type="text" name="duration_{{ c._id }}" class="ins-input-sm" style="width: 70px;" value="{{ c.duration_months or '' }}"></td>
+                        {# Build niled array as JSON for JS — one boolean per extra product #}
+                        {% set niled_arr = c.extra_products | map(attribute='niled') | list %}
 
-                            <td>
-                                <input type="text" name="item_name_{{ c._id }}" class="ins-input w-100 mb-1" value="{{ c.product_name or '' }}">
-                                {% for ep in c.extra_products %}
-                                <div class="text-danger x-small text-start border-top pt-1 extra-prod-item">● {{ ep.p_name }}</div>
-                                {% endfor %}
-                            </td>
-                            <td>
-                                <input type="date" name="dist_date_{{ c._id }}" class="ins-input-sm w-100 mb-1" value="{{ c.delivery_date or '' }}">
-                                {% for ep in c.extra_products %}
-                                <div class="text-danger x-small border-top pt-1">{{ ep.added_date or '-' }}</div>
-                                {% endfor %}
-                            </td>
-                            <td>
-                                <input type="number" name="item_price_{{ c._id }}" class="ins-input price-calc mb-1" value="{{ c.cost_price or '' }}">
-                                {% for ep in c.extra_products %}
-                                <div class="text-danger x-small border-top pt-1">{{ ep.p_price|int if ep.p_price else '' }}</div>
-                                {% endfor %}
-                            </td>
-                            <td>
-                                <input type="number" name="item_profit_{{ c._id }}" class="ins-input profit-calc mb-1" value="{{ c.profit or '' }}">
-                                {% for ep in c.extra_products %}
-                                <div class="text-danger x-small border-top pt-1">{{ ep.p_profit|int if ep.p_profit else '' }}</div>
-                                {% endfor %}
-                            </td>
-                            <td class="bg-light fw-bold">
-                                <div id="total_with_profit_{{ c._id }}" class="mb-1"></div>
-                                {% for ep in c.extra_products %}
-                                <div class="text-danger x-small border-top pt-1">{{ (ep.p_price|default(0)|float + ep.p_profit|default(0)|float)|int if (ep.p_price or ep.p_profit) else '' }}</div>
-                                {% endfor %}
-                            </td>
-                            <td>
-                                <input type="number" name="per_kisti_{{ c._id }}" class="ins-input mb-1" value="{{ c.per_kisti or '' }}">
-                                {% for ep in c.extra_products %}
-                                <div class="text-danger x-small border-top pt-1">{{ ep.p_kisti|int if ep.p_kisti else '' }}</div>
-                                {% endfor %}
+                        <tr data-cid="{{ c._id }}" data-niled-init="{{ niled_arr | tojson | e }}">
+
+                            {# ── Hidden state inputs ── #}
+                            <input type="hidden" name="nil_status_{{ c._id }}"
+                                   id="nil_status_input_{{ c._id }}"
+                                   value="{{ col.get('nil_status', 'false') }}">
+                            <input type="hidden" name="niled_ep_data_{{ c._id }}"
+                                   id="niled_ep_data_{{ c._id }}"
+                                   value="{{ niled_arr | tojson }}">
+
+                            {# ── Action cell ── #}
+                            <td class="td-action">
+                                <button type="button" class="ks-nil-btn"
+                                        onclick="handleSingleNil('{{ c._id }}', this.closest('tr'))">
+                                    Nil
+                                </button>
                             </td>
 
-                            <td><input type="number" name="total_kisti_{{ c._id }}" class="ins-input total-kisti-in" value="{{ c.total_kisti if c.total_kisti != 0 else '' }}"></td>
-                            <td><input type="number" name="paid_kisti_{{ c._id }}" class="ins-input paid-kisti-in" value="{{ c.paid_kisti if c.paid_kisti != 0 else '' }}"></td>
-                            <td><input type="number" name="running_kisti_{{ c._id }}" class="ins-input" value="{{ col.get('running_kisti') if col.get('running_kisti') != 0 else '' }}"></td>
-                            
-                            <td id="remain_kisti_{{ c._id }}" class="fw-bold text-danger"></td>
-                            
-                            <td class="bg-light p-1">
-                                <div class="extra-select-container" style="max-height: 100px; overflow-y: auto; background: white; padding: 3px; border-radius: 4px;">
+                            <td class="td-center">{{ c.sl_no }}</td>
+                            <td class="td-name"><b>{{ c.customer_name }}</b></td>
+
+                            <td class="td-center">
+                                <input type="date" name="join_date_{{ c._id }}"
+                                       class="ks-in ks-in-sm"
+                                       value="{{ c.join_date or '' }}">
+                            </td>
+
+                            <td class="td-center">{{ c.acc_no }}</td>
+
+                            <td class="td-center">
+                                <input type="text" name="duration_{{ c._id }}"
+                                       class="ks-in" style="width:70px"
+                                       value="{{ c.duration_months or '' }}">
+                            </td>
+
+                            {# ── উপকরণের নাম ── #}
+                            <td>
+                                <input type="text" name="item_name_{{ c._id }}"
+                                       class="ks-in w100 mb1"
+                                       value="{{ c.product_name or '' }}">
+                                {% for ep in c.extra_products %}
+                                <div class="ep-label {% if ep.niled %}ep-niled{% else %}ep-active{% endif %}"
+                                     data-ep-index="{{ loop.index0 }}">
+                                    ● {{ ep.p_name }}
+                                </div>
+                                {% endfor %}
+                            </td>
+
+                            {# ── বিতরণ তারিখ ── #}
+                            <td>
+                                <input type="date" name="dist_date_{{ c._id }}"
+                                       class="ks-in ks-in-sm w100 mb1"
+                                       value="{{ c.delivery_date or '' }}">
+                                {% for ep in c.extra_products %}
+                                <div class="ep-label {% if ep.niled %}ep-niled{% else %}ep-active{% endif %}"
+                                     data-ep-index="{{ loop.index0 }}">
+                                    {{ ep.added_date or '-' }}
+                                </div>
+                                {% endfor %}
+                            </td>
+
+                            {# ── মূল্য ── #}
+                            <td>
+                                <input type="number" name="item_price_{{ c._id }}"
+                                       class="ks-in price-calc mb1"
+                                       value="{{ c.cost_price or '' }}">
+                                {% for ep in c.extra_products %}
+                                <div class="ep-label {% if ep.niled %}ep-niled{% else %}ep-active{% endif %}"
+                                     data-ep-index="{{ loop.index0 }}">
+                                    {{ ep.p_price|int if ep.p_price else '' }}
+                                </div>
+                                {% endfor %}
+                            </td>
+
+                            {# ── সার্ভিস চার্জ ── #}
+                            <td>
+                                <input type="number" name="item_profit_{{ c._id }}"
+                                       class="ks-in profit-calc mb1"
+                                       value="{{ c.profit or '' }}">
+                                {% for ep in c.extra_products %}
+                                <div class="ep-label {% if ep.niled %}ep-niled{% else %}ep-active{% endif %}"
+                                     data-ep-index="{{ loop.index0 }}">
+                                    {{ ep.p_profit|int if ep.p_profit else '' }}
+                                </div>
+                                {% endfor %}
+                            </td>
+
+                            {# ── চার্জ সহ মূল্য ── #}
+                            <td class="td-calc">
+                                <div id="total_with_profit_{{ c._id }}" class="mb1"></div>
+                                {% for ep in c.extra_products %}
+                                <div class="ep-label {% if ep.niled %}ep-niled{% else %}ep-active{% endif %}"
+                                     data-ep-index="{{ loop.index0 }}">
+                                    {{ (ep.p_price|default(0)|float + ep.p_profit|default(0)|float)|int if (ep.p_price or ep.p_profit) else '' }}
+                                </div>
+                                {% endfor %}
+                            </td>
+
+                            {# ── সাপ্তাহিক মূল্য ── #}
+                            <td>
+                                <input type="number" name="per_kisti_{{ c._id }}"
+                                       class="ks-in mb1"
+                                       value="{{ c.per_kisti or '' }}">
+                                {% for ep in c.extra_products %}
+                                <div class="ep-label {% if ep.niled %}ep-niled{% else %}ep-active{% endif %}"
+                                     data-ep-index="{{ loop.index0 }}">
+                                    {{ ep.p_kisti|int if ep.p_kisti else '' }}
+                                </div>
+                                {% endfor %}
+                            </td>
+
+                            {# ── মোট / আদায় / চলমান / বাকি সপ্তাহ ── #}
+                            <td><input type="number" name="total_kisti_{{ c._id }}"
+                                       class="ks-in total-kisti-in"
+                                       value="{{ c.total_kisti if c.total_kisti != 0 else '' }}"></td>
+                            <td><input type="number" name="paid_kisti_{{ c._id }}"
+                                       class="ks-in paid-kisti-in"
+                                       value="{{ c.paid_kisti if c.paid_kisti != 0 else '' }}"></td>
+                            <td><input type="number" name="running_kisti_{{ c._id }}"
+                                       class="ks-in"
+                                       value="{{ col.get('running_kisti') if col.get('running_kisti') != 0 else '' }}"></td>
+                            <td id="remain_kisti_{{ c._id }}" class="td-remain"></td>
+
+                            {# ── অতিরিক্ত উপকরণ selector ── #}
+                            <td class="td-extra">
+                                <div class="ep-select-box">
                                     {% for ep in c.extra_products %}
-                                    <div class="d-flex align-items-center border-bottom pb-1 mb-1">
-                                        <input type="checkbox" class="extra-checkbox me-1" 
+                                    {% set ep_niled = ep.niled %}
+                                    <div class="ep-cb-row {% if ep_niled %}ep-cb-niled{% endif %}"
+                                         data-ep-index="{{ loop.index0 }}"
+                                         data-ep-niled="{{ 'true' if ep_niled else 'false' }}">
+                                        <input type="checkbox"
+                                               class="ep-checkbox"
                                                data-price="{{ (ep.p_price|default(0)|float + ep.p_profit|default(0)|float) }}"
-                                               onchange="calculateRow('{{ c._id }}', this.closest('tr'))" checked>
-                                        <span class="x-small text-truncate" style="flex: 1; text-align: left;">{{ ep.p_name }}</span>
-                                        <span class="x-small fw-bold text-primary">৳{{ (ep.p_price|default(0)|float + ep.p_profit|default(0)|float)|int }}</span>
+                                               data-ep-index="{{ loop.index0 }}"
+                                               {% if not ep_niled %}checked{% endif %}
+                                               {% if ep_niled %}disabled{% endif %}
+                                               onchange="calculateRow('{{ c._id }}', this.closest('tr'))">
+                                        <span class="ep-cb-name">{{ ep.p_name }}</span>
+                                        <span class="ep-cb-price {% if ep_niled %}ep-price-niled{% endif %}">
+                                            ৳{{ (ep.p_price|default(0)|float + ep.p_profit|default(0)|float)|int }}
+                                        </span>
                                     </div>
                                     {% endfor %}
                                 </div>
-                                <div class="pt-1">
-                                    <span id="extra_total_display_{{ c._id }}" class="fw-bold text-primary"></span>
-                                </div>
+                                <div id="extra_total_display_{{ c._id }}" class="ep-total-display"></div>
                             </td>
 
-                            <td><input type="number" name="pre_due_n_{{ c._id }}" class="ins-input pre-due-n" value="{{ col.get('pre_due_n') if col.get('pre_due_n') != 0 else '' }}"></td>
-                            <td><input type="number" name="pre_due_m_{{ c._id }}" class="ins-input pre-due-m" value="{{ col.get('pre_due_m') if col.get('pre_due_m') != 0 else '' }}"></td>
+                            {# ── গত মাসের জের ── #}
+                            <td><input type="number" name="pre_due_n_{{ c._id }}"
+                                       class="ks-in pre-due-n"
+                                       value="{{ col.get('pre_due_n') if col.get('pre_due_n') != 0 else '' }}"></td>
+                            <td><input type="number" name="pre_due_m_{{ c._id }}"
+                                       class="ks-in pre-due-m"
+                                       value="{{ col.get('pre_due_m') if col.get('pre_due_m') != 0 else '' }}"></td>
 
+                            {# ── সাপ্তাহিক নগদ ── #}
                             {% set kisti_list = col.get('kisti_data', []) %}
                             {% for i in range(1, 6) %}
-                                <td><input type="number" step="any" name="n_{{ i }}_{{ c._id }}" class="ins-input n-in" value="{{ kisti_list[i-1] if (kisti_list|length >= i and kisti_list[i-1] != 0) else '' }}"></td>
+                            <td><input type="number" step="any"
+                                       name="n_{{ i }}_{{ c._id }}"
+                                       class="ks-in n-in"
+                                       value="{{ kisti_list[i-1] if (kisti_list|length >= i and kisti_list[i-1] != 0) else '' }}"></td>
                             {% endfor %}
-                            <td class="bg-light fw-bold text-primary"><span id="total_n_{{ c._id }}"></span></td>
-                            <td><input type="date" name="r_date_{{ c._id }}" class="ins-input-sm" value="{{ col.get('return_date', '') }}"></td>
-                            <td><input type="number" step="any" name="r_cash_{{ c._id }}" class="ins-input r-in" value="{{ col.get('return_cash') if col.get('return_cash') != 0 else '' }}"></td>
-                            <td class="bg-danger-subtle fw-bold text-danger"><span id="bal_n_{{ c._id }}"></span></td>
+                            <td class="td-total-n"><span id="total_n_{{ c._id }}"></span></td>
+                            <td><input type="date" name="r_date_{{ c._id }}"
+                                       class="ks-in ks-in-sm"
+                                       value="{{ col.get('return_date', '') }}"></td>
+                            <td><input type="number" step="any"
+                                       name="r_cash_{{ c._id }}"
+                                       class="ks-in r-in"
+                                       value="{{ col.get('return_cash') if col.get('return_cash') != 0 else '' }}"></td>
+                            <td class="td-bal-n"><span id="bal_n_{{ c._id }}"></span></td>
 
+                            {# ── সাপ্তাহিক মূল্য ── #}
                             {% set price_list = col.get('price_data', []) %}
                             {% for i in range(1, 6) %}
-                                <td><input type="number" step="any" name="m_{{ i }}_{{ c._id }}" class="ins-input m-in" value="{{ price_list[i-1] if (price_list|length >= i and price_list[i-1] != 0) else '' }}"></td>
+                            <td><input type="number" step="any"
+                                       name="m_{{ i }}_{{ c._id }}"
+                                       class="ks-in m-in"
+                                       value="{{ price_list[i-1] if (price_list|length >= i and price_list[i-1] != 0) else '' }}"></td>
                             {% endfor %}
-                            <td class="bg-light fw-bold text-success"><span id="total_m_{{ c._id }}"></span></td>
-                            <td><input type="date" name="discount_date_{{ c._id }}" class="ins-input-sm" value="{{ col.get('discount_date', '') }}"></td>
-                            <td><input type="number" step="any" name="discount_{{ c._id }}" class="ins-input d-in text-danger" value="{{ col.get('discount') if col.get('discount') != 0 else '' }}"></td>
-                            <td class="bg-info-subtle fw-bold text-dark"><span id="bal_m_{{ c._id }}"></span></td>
-                            
-                            <td><input type="text" name="comment_{{ c._id }}" class="ins-input" style="width: 120px;" value="{{ col.get('comment') or c.get('comment', '') }}"></td>
+                            <td class="td-total-m"><span id="total_m_{{ c._id }}"></span></td>
+                            <td><input type="date" name="discount_date_{{ c._id }}"
+                                       class="ks-in ks-in-sm"
+                                       value="{{ col.get('discount_date', '') }}"></td>
+                            <td><input type="number" step="any"
+                                       name="discount_{{ c._id }}"
+                                       class="ks-in d-in"
+                                       value="{{ col.get('discount') if col.get('discount') != 0 else '' }}"></td>
+                            <td class="td-bal-m"><span id="bal_m_{{ c._id }}"></span></td>
+
+                            {# ── মন্তব্য ── #}
+                            <td>
+                                <input type="text" name="comment_{{ c._id }}"
+                                       class="ks-in" style="width:120px"
+                                       value="{{ col.get('comment') or c.get('comment', '') }}">
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-            
-            <div class="fixed-bottom bg-white p-3 shadow-lg border-top text-center" style="z-index: 1030;">
-                <button type="submit" class="btn btn-primary px-5 rounded-pill shadow-lg fw-bold py-2 transition-scale">
-                    <i class="fas fa-save me-2"></i> সমস্ত তথ্য সেভ করুন
-                </button>
-            </div>
+        </div>
+
+        {# ── STICKY SAVE BAR ── #}
+        <div class="ks-save-bar">
+            <button type="submit" class="ks-save-btn">
+                <i class="fas fa-save"></i> সমস্ত তথ্য সেভ করুন
+            </button>
         </div>
     </form>
 </div>
 
+{# ════════════════════════════════════════════════════════════════
+   STYLES
+════════════════════════════════════════════════════════════════ #}
 <style>
-    body { padding-bottom: 100px; }
-    .ins-input { width: 70px; border: 1px solid #cbd5e1; text-align: center; border-radius: 4px; padding: 4px; font-size: 11px; }
-    .ins-input-sm { width: 90px; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px; font-size: 10px; }
-    .x-small { font-size: 9px; line-height: 1.2; }
-    .extra-checkbox { width: 13px; height: 13px; cursor: pointer; }
-    .table thead th { vertical-align: middle; border-color: #334155; padding: 8px 4px; }
-    .bg-danger-subtle { background-color: #fee2e2 !important; }
-    .bg-info-subtle { background-color: #e0f2fe !important; }
-    .bg-warning-subtle { background-color: #fffbeb !important; }
-    .btn-xs { font-size: 10px; padding: 2px 5px; }
-    .transition-scale:hover { transform: scale(1.02); transition: 0.3s; }
-    /* বাটনের জন্য রেসপনসিভ ক্লাস */
-.btn-responsive {
-    border-radius: 10px; /* পিল শেপ থেকে কিছুটা চারকোনা করলে মোবাইলে লেখা বেশি ধরে */
-    padding: 12px 15px;
-    font-weight: bold;
-    font-size: 14px;
+/* ── Page ── */
+body { padding-bottom: 90px; background: #f1f5f9; }
+.ks-page { font-family: 'Hind Siliguri', sans-serif; }
+
+/* ── Header card ── */
+.ks-header-card {
+    background: #fff;
+    border-radius: 14px;
+    border-left: 5px solid #6366f1;
+    box-shadow: 0 2px 12px rgba(0,0,0,.08);
+    padding: 18px 24px;
+}
+.ks-header-inner { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; }
+.ks-title { font-size: 1.15rem; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
+.ks-title i { color: #6366f1; margin-right: 6px; }
+.ks-group-name { color: #6366f1; }
+.ks-meta { font-size: 11px; color: #64748b; margin: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+.ks-meta i { margin-right: 3px; color: #94a3b8; }
+
+/* ── Header buttons ── */
+.ks-header-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ks-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: none; border-radius: 20px; padding: 8px 18px;
+    font-size: 13px; font-weight: 700; cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+    text-decoration: none; white-space: nowrap; color: #fff;
+}
+.ks-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.2); color: #fff; }
+.ks-btn-danger  { background: #ef4444; }
+.ks-btn-success { background: #22c55e; }
+.ks-btn-warning { background: #f59e0b; }
+
+/* ── Table wrapper ── */
+.ks-table-wrap {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.07);
+    overflow: hidden;
+}
+
+/* ── Table base ── */
+.ks-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 11px; min-width: 4500px;
+}
+.ks-table th, .ks-table td {
+    border: 1px solid #cbd5e1;
+    padding: 5px 4px;
+    vertical-align: middle;
+    text-align: center;
     white-space: nowrap;
-    width: 100%; /* মোবাইলে বাটন পুরো স্ক্রিন জুড়ে থাকবে */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    border: none;
+}
+.ks-table thead th { font-size: 10px; text-transform: uppercase; letter-spacing: .3px; }
+
+/* ── thead colour bands ── */
+.ks-thead-top th { color: #fff; }
+.bg-danger-h  { background: #dc2626 !important; color: #fff !important; }
+.bg-secondary-h{ background: #475569 !important; color: #fff !important; }
+.bg-info-h    { background: #0891b2 !important; color: #fff !important; }
+.bg-primary-h { background: #3b82f6 !important; color: #fff !important; }
+.bg-success-h { background: #16a34a !important; color: #fff !important; }
+.bg-dark-h    { background: #1e293b !important; color: #fff !important; }
+.bg-light-h   { background: #f8fafc !important; color: #1e293b !important; }
+.bg-warn-h    { background: #fef3c7 !important; color: #92400e !important; }
+.fw-b         { font-weight: 700; }
+
+/* ── Nil button ── */
+.ks-nil-btn {
+    background: #fff; border: 1px solid #ef4444; color: #ef4444;
+    border-radius: 4px; font-size: 10px; font-weight: 700;
+    padding: 2px 7px; cursor: pointer; transition: all .15s;
+}
+.ks-nil-btn:hover { background: #ef4444; color: #fff; }
+
+/* ── Inputs ── */
+.ks-in {
+    border: 1px solid #cbd5e1; border-radius: 4px;
+    padding: 3px 4px; font-size: 11px; text-align: center;
+    width: 70px; background: #fff; transition: border-color .15s;
+}
+.ks-in:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,.15); }
+.ks-in-sm { width: 95px; font-size: 10px; }
+.w100 { width: 100%; }
+.mb1  { margin-bottom: 3px; }
+
+/* ── Calculated / balance cells ── */
+.td-calc   { background: #f8fafc; font-weight: 700; }
+.td-remain { color: #dc2626; font-weight: 700; }
+.td-total-n { background: #eff6ff; color: #1d4ed8; font-weight: 700; }
+.td-bal-n   { background: #fee2e2; color: #dc2626; font-weight: 700; }
+.td-total-m { background: #f0fdf4; color: #15803d; font-weight: 700; }
+.td-bal-m   { background: #e0f2fe; color: #0369a1; font-weight: 700; }
+.td-extra   { background: #f8fafc; padding: 4px !important; }
+.td-action  { background: #fef2f2; }
+.td-center  { text-align: center; }
+.td-name    { text-align: left; padding-left: 8px; min-width: 180px; white-space: normal; }
+
+/* ── Extra product labels (in non-checkbox columns) ── */
+.ep-label {
+    font-size: 9px; line-height: 1.4; text-align: left;
+    border-top: 1px solid #e2e8f0; padding-top: 2px; margin-top: 2px;
+}
+/* Active = red, eye-catching */
+.ep-active { color: #dc2626 !important; font-weight: 600; }
+/* Niled = muted black, permanent */
+.ep-niled  { color: #374151 !important; opacity: .55; text-decoration: line-through; }
+
+/* ── Extra product checkbox rows ── */
+.ep-select-box {
+    max-height: 120px; overflow-y: auto;
+    background: #fff; border-radius: 4px;
+    border: 1px solid #e2e8f0; padding: 3px;
+}
+.ep-cb-row {
+    display: flex; align-items: center; gap: 4px;
+    padding: 2px 2px; border-bottom: 1px solid #f1f5f9;
+    border-radius: 3px;
+}
+.ep-cb-row:last-child { border-bottom: none; }
+/* Niled checkbox row — permanently muted */
+.ep-cb-niled {
+    opacity: .45;
+    background: #f8f9fa;
+}
+.ep-cb-niled .ep-checkbox { cursor: not-allowed; accent-color: #6c757d; }
+
+.ep-checkbox { width: 12px; height: 12px; flex-shrink: 0; cursor: pointer; }
+.ep-cb-name  { flex: 1; font-size: 9px; text-align: left; overflow: hidden; text-overflow: ellipsis; }
+.ep-cb-price { font-size: 9px; font-weight: 700; color: #2563eb; white-space: nowrap; }
+/* Niled price: strikethrough grey */
+.ep-price-niled { color: #94a3b8 !important; text-decoration: line-through; }
+
+.ep-total-display {
+    font-size: 10px; font-weight: 700;
+    color: #2563eb; padding-top: 3px;
+    min-height: 14px;
 }
 
-/* মাঝারি স্ক্রিন এবং পিসির জন্য (Tablets & Desktop) */
-@media (min-width: 576px) {
-    .btn-responsive {
-        width: auto; /* পিসিতে বাটন লেখা অনুযায়ী ছোট হয়ে যাবে */
-        padding: 10px 20px;
-        font-size: 14px;
-        flex: none;
-    }
+/* ── Sticky save bar ── */
+.ks-save-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: #fff; border-top: 1px solid #e2e8f0;
+    padding: 12px 24px; text-align: center;
+    box-shadow: 0 -4px 16px rgba(0,0,0,.08);
+    z-index: 1030;
 }
+.ks-save-btn {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    border: none; color: #fff; border-radius: 20px;
+    padding: 10px 40px; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: transform .15s, box-shadow .15s;
+    box-shadow: 0 4px 14px rgba(99,102,241,.4);
+}
+.ks-save-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99,102,241,.5); }
 
-/* খুব ছোট মোবাইলের জন্য ফন্ট একটু ছোট করা */
-@media (max-width: 400px) {
-    .btn-responsive {
-        font-size: 12px;
-        padding: 10px 8px;
-    }
+/* ── Responsive buttons ── */
+@media (max-width: 576px) {
+    .ks-header-inner { flex-direction: column; align-items: flex-start; }
+    .ks-header-actions { width: 100%; }
+    .ks-btn { flex: 1; justify-content: center; }
 }
 </style>
 
+{# ════════════════════════════════════════════════════════════════
+   JAVASCRIPT
+════════════════════════════════════════════════════════════════ #}
 <script>
-    // Helper function to force empty display instead of 0 or 0.0
-    function setDisplayValue(elementId, value) {
-        const el = document.getElementById(elementId);
-        if (!el) return;
-        // If value is 0, 0.0, NaN, or null, keep it empty
-        if (!value || isNaN(value) || value === 0 || value === "0" || value === "0.0") {
-            el.innerText = "";
-        } else {
-            el.innerText = value;
+// ─────────────────────────────────────────────────────────────────
+//  UTILITIES
+// ─────────────────────────────────────────────────────────────────
+
+/** Show a numeric value in a span; hide if 0 / blank / NaN */
+function setDisplay(id, value) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = (value && !isNaN(value) && value !== 0) ? value : '';
+}
+
+/** Read the niled boolean array from the hidden input for a customer */
+function getNiledArr(cid) {
+    const el = document.getElementById('niled_ep_data_' + cid);
+    if (!el || !el.value || el.value === 'null') return [];
+    try { return JSON.parse(el.value); } catch(e) { return []; }
+}
+
+/** Write the niled boolean array back to the hidden input */
+function saveNiledArr(cid, arr) {
+    const el = document.getElementById('niled_ep_data_' + cid);
+    if (el) el.value = JSON.stringify(arr);
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  APPLY NILED VISUALS FOR ONE EP INDEX IN A ROW
+//  Call this both on page-load (from saved DB state) and after a
+//  Nil action — so the logic lives in ONE place.
+// ─────────────────────────────────────────────────────────────────
+function applyNiledVisuals(cid, row, idx) {
+    // 1. Checkbox row → muted
+    row.querySelectorAll(`.ep-cb-row[data-ep-index="${idx}"]`).forEach(epRow => {
+        epRow.dataset.epNiled = 'true';
+        epRow.classList.add('ep-cb-niled');
+        const cb = epRow.querySelector('.ep-checkbox');
+        if (cb) { cb.checked = false; cb.disabled = true; }
+        const priceSpan = epRow.querySelector('.ep-cb-price');
+        if (priceSpan) {
+            priceSpan.classList.remove('ep-cb-price');
+            priceSpan.classList.add('ep-price-niled', 'ep-cb-price');
         }
-    }
+    });
 
-    function calculateRow(cid, row) {
-        let mainPrice = parseFloat(row.querySelector('.price-calc').value) || 0;
-        let mainProfit = parseFloat(row.querySelector('.profit-calc').value) || 0;
-        setDisplayValue('total_with_profit_' + cid, mainPrice + mainProfit);
+    // 2. All label divs across all columns → niled (black + strikethrough)
+    row.querySelectorAll(`.ep-label[data-ep-index="${idx}"]`).forEach(lbl => {
+        lbl.classList.remove('ep-active');
+        lbl.classList.add('ep-niled');
+    });
+}
 
-        let nilStatus = document.getElementById('nil_status_input_' + cid).value;
-        let extraTotal = 0;
-        if(nilStatus === "true") {
-            setDisplayValue('extra_total_display_' + cid, "");
-        } else {
-            row.querySelectorAll('.extra-checkbox:checked').forEach(cb => {
-                extraTotal += parseFloat(cb.dataset.price) || 0;
-            });
-            setDisplayValue('extra_total_display_' + cid, extraTotal);
-        }
+// ─────────────────────────────────────────────────────────────────
+//  CALCULATE ROW  — totals, balances, extra sum
+// ─────────────────────────────────────────────────────────────────
+function calculateRow(cid, row) {
+    // চার্জ সহ মূল্য
+    const mainPrice  = parseFloat(row.querySelector('.price-calc')?.value)  || 0;
+    const mainProfit = parseFloat(row.querySelector('.profit-calc')?.value) || 0;
+    const combined   = mainPrice + mainProfit;
+    const twpEl = document.getElementById('total_with_profit_' + cid);
+    if (twpEl) twpEl.textContent = combined || '';
 
-        let totalKisti = parseFloat(row.querySelector('.total-kisti-in').value) || 0;
-        let paidKisti = parseFloat(row.querySelector('.paid-kisti-in').value) || 0;
-        setDisplayValue('remain_kisti_' + cid, totalKisti - paidKisti);
+    // অতিরিক্ত মূল্য — only active (niled=false) AND checked
+    let extraTotal = 0;
+    row.querySelectorAll('.ep-cb-row').forEach(epRow => {
+        if (epRow.dataset.epNiled === 'true') return;
+        const cb = epRow.querySelector('.ep-checkbox');
+        if (cb && cb.checked) extraTotal += parseFloat(cb.dataset.price) || 0;
+    });
+    const extraEl = document.getElementById('extra_total_display_' + cid);
+    if (extraEl) extraEl.textContent = extraTotal > 0 ? ('৳' + extraTotal) : '';
 
-        let totalN = 0;
-        row.querySelectorAll('.n-in').forEach(i => totalN += parseFloat(i.value) || 0);
-        let returnN = parseFloat(row.querySelector('.r-in').value) || 0;
-        setDisplayValue('total_n_' + cid, totalN);
-        setDisplayValue('bal_n_' + cid, totalN - returnN);
+    // বাকি সপ্তাহ
+    const totalK = parseFloat(row.querySelector('.total-kisti-in')?.value) || 0;
+    const paidK  = parseFloat(row.querySelector('.paid-kisti-in')?.value)  || 0;
+    setDisplay('remain_kisti_' + cid, totalK - paidK || '');
 
-        let totalM = 0;
-        row.querySelectorAll('.m-in').forEach(i => totalM += parseFloat(i.value) || 0);
-        let disc = parseFloat(row.querySelector('.d-in').value) || 0;
-        setDisplayValue('total_m_' + cid, totalM);
-        setDisplayValue('bal_m_' + cid, totalM + disc);
-    }
+    // নগদ আদায়
+    let totalN = 0;
+    row.querySelectorAll('.n-in').forEach(i => totalN += parseFloat(i.value) || 0);
+    const returnN = parseFloat(row.querySelector('.r-in')?.value) || 0;
+    setDisplay('total_n_' + cid, totalN || '');
+    setDisplay('bal_n_'   + cid, (totalN - returnN) || '');
 
-    function performNilAction(cid, row) {
-        let balN = parseFloat(document.getElementById('bal_n_'+cid).innerText) || 0;
-        let balM = parseFloat(document.getElementById('bal_m_'+cid).innerText) || 0;
-        
-        let selectedExtraValue = 0;
-        row.querySelectorAll('.extra-checkbox:checked').forEach(cb => {
-            selectedExtraValue += parseFloat(cb.dataset.price) || 0;
+    // মূল্য আদায়
+    let totalM = 0;
+    row.querySelectorAll('.m-in').forEach(i => totalM += parseFloat(i.value) || 0);
+    const disc = parseFloat(row.querySelector('.d-in')?.value) || 0;
+    setDisplay('total_m_' + cid, totalM || '');
+    setDisplay('bal_m_'   + cid, (totalM + disc) || '');
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  NIL ACTION — transfer balance to pre-due, clear weekly fields,
+//  permanently nil all currently-active extra products
+// ─────────────────────────────────────────────────────────────────
+function performNilAction(cid, row) {
+    // Sum of active + checked extra products
+    let selectedExtraValue = 0;
+    row.querySelectorAll('.ep-cb-row').forEach(epRow => {
+        if (epRow.dataset.epNiled === 'true') return;
+        const cb = epRow.querySelector('.ep-checkbox');
+        if (cb && cb.checked) selectedExtraValue += parseFloat(cb.dataset.price) || 0;
+    });
+
+    const balN = parseFloat(document.getElementById('bal_n_' + cid)?.textContent) || 0;
+    const balM = parseFloat(document.getElementById('bal_m_' + cid)?.textContent) || 0;
+
+    // Add to pre-due
+    const preDueN = row.querySelector('.pre-due-n');
+    const preDueM = row.querySelector('.pre-due-m');
+    if (preDueN) preDueN.value = (parseFloat(preDueN.value) || 0) + balN;
+    if (preDueM) preDueM.value = ((parseFloat(preDueM.value) || 0) + selectedExtraValue) - balM;
+
+    // Clear weekly inputs
+    row.querySelectorAll('.n-in, .m-in, .d-in, .r-in').forEach(i => i.value = '');
+    row.querySelectorAll(
+        `input[name="r_date_${cid}"], input[name="discount_date_${cid}"]`
+    ).forEach(i => i.value = '');
+
+    // nil_status flag
+    const nsInput = document.getElementById('nil_status_input_' + cid);
+    if (nsInput) nsInput.value = 'true';
+
+    // Mark all currently-active extra products as niled PERMANENTLY
+    const niledArr = getNiledArr(cid);
+
+    row.querySelectorAll('.ep-cb-row').forEach(epRow => {
+        if (epRow.dataset.epNiled === 'true') return;   // already niled — skip
+        const idx = parseInt(epRow.dataset.epIndex, 10);
+
+        // Expand array if needed
+        while (niledArr.length <= idx) niledArr.push(false);
+        niledArr[idx] = true;
+
+        // Apply visuals via shared function
+        applyNiledVisuals(cid, row, idx);
+    });
+
+    saveNiledArr(cid, niledArr);
+    calculateRow(cid, row);
+}
+
+function handleSingleNil(cid, row) {
+    if (!confirm('সিলেক্ট করা অতিরিক্ত পণ্যের মূল্য জেরে পাঠাতে চান?')) return;
+    performNilAction(cid, row);
+}
+
+function handleAllNil() {
+    if (!confirm('সবার ব্যালেন্স জেরে পাঠাতে চান?')) return;
+    document.querySelectorAll('tr[data-cid]').forEach(row => {
+        performNilAction(row.dataset.cid, row);
+    });
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  LIVE INPUT LISTENER
+// ─────────────────────────────────────────────────────────────────
+document.addEventListener('input', e => {
+    const tr = e.target.closest('tr[data-cid]');
+    if (tr) calculateRow(tr.dataset.cid, tr);
+});
+
+// ─────────────────────────────────────────────────────────────────
+//  PAGE LOAD — re-apply niled visuals from DB state, then calculate
+// ─────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('tr[data-cid]').forEach(row => {
+        const cid = row.dataset.cid;
+
+        // Read niled array that Jinja rendered from the DB into data-niled-init
+        // This is the authoritative source on fresh page load.
+        let niledArr = [];
+        try {
+            const raw = row.dataset.niledInit;   // e.g. "[false, true, false]"
+            if (raw) niledArr = JSON.parse(raw);
+        } catch(e) { niledArr = []; }
+
+        // Sync the hidden input so if user saves without touching anything,
+        // the correct niled state is still submitted.
+        saveNiledArr(cid, niledArr);
+
+        // Apply visuals for every index that is niled=true
+        niledArr.forEach((isNiled, idx) => {
+            if (isNiled) applyNiledVisuals(cid, row, idx);
         });
 
-        let preDueNField = row.querySelector('.pre-due-n');
-        let preDueMField = row.querySelector('.pre-due-m');
-
-        preDueNField.value = (parseFloat(preDueNField.value) || 0) + balN;
-        let oldPreDueM = parseFloat(preDueMField.value) || 0;
-        preDueMField.value = (oldPreDueM + selectedExtraValue) - balM;
-        
-        document.getElementById('nil_status_input_' + cid).value = "true"; 
-        row.querySelectorAll('.n-in, .m-in, .d-in, .r-in, input[name^="r_date_"], input[name^="discount_date_"]').forEach(i => i.value = '');
-        row.querySelectorAll('.extra-checkbox').forEach(cb => cb.checked = false);
-        
+        // Calculate row totals
         calculateRow(cid, row);
-    }
-
-    function handleSingleNil(cid, row) {
-        if(!confirm("সিলেক্ট করা অতিরিক্ত পণ্যের মূল্য জেরে পাঠাতে চান?")) return;
-        performNilAction(cid, row);
-    }
-
-    function handleAllNil() {
-        if(!confirm("সবার ব্যালেন্স জেরে পাঠাতে চান?")) return;
-        document.querySelectorAll('tr[data-cid]').forEach(row => {
-            performNilAction(row.dataset.cid, row);
-        });
-    }
-
-    document.addEventListener('input', (e) => {
-        const tr = e.target.closest('tr');
-        if (tr && tr.dataset.cid) calculateRow(tr.dataset.cid, tr);
     });
-
-    window.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('tr[data-cid]').forEach(row => calculateRow(row.dataset.cid, row));
-    });
+});
 </script>
 {% endblock %}
