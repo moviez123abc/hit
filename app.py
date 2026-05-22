@@ -584,6 +584,16 @@ def save_customer():
         flash(f"সেভ করতে সমস্যা হয়েছে: {str(e)}", "danger")
         return redirect(url_for('add_customer_page'))
 
+import json
+from datetime import datetime
+from bson import ObjectId
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  LIST ALL SHEETS
+#  Admin  → sees every sheet
+#  Employee → sees only sheets assigned to them
+# ─────────────────────────────────────────────────────────────────────────────
 @app.route('/kisti_sheets')
 @login_required
 def kisti_sheets_list():
@@ -592,184 +602,204 @@ def kisti_sheets_list():
         user_name = session.get('user')
 
         if user_role == 'admin':
-            # অ্যাডমিন সব শীট দেখতে পাবে
             all_sheets = list(sheets_col.find().sort("_id", -1))
         else:
-            # এমপ্লয়ির তথ্য ডাটাবেস থেকে খুঁজে বের করা
             user_data = users_col.find_one({"username": user_name})
-            
-            # এমপ্লয়ির সাথে যুক্ত শীট আইডিগুলোর লিস্ট (String থেকে ObjectId তে রূপান্তর)
-            assigned_sheet_ids = [ObjectId(sid) for sid in user_data.get('assigned_sheets', [])]
-            
-            # শুধুমাত্র assigned শীটগুলো ফিল্টার করে আনা
-            all_sheets = list(sheets_col.find({"_id": {"$in": assigned_sheet_ids}}).sort("_id", -1))
+            if not user_data:
+                flash("ব্যবহারকারীর তথ্য পাওয়া যায়নি!", "danger")
+                return redirect(url_for('index'))
+
+            assigned_ids = [
+                ObjectId(sid)
+                for sid in user_data.get('assigned_sheets', [])
+                if sid
+            ]
+            all_sheets = list(
+                sheets_col.find({"_id": {"$in": assigned_ids}}).sort("_id", -1)
+            )
 
         return render_template('kisti_sheets_select.html', sheets=all_sheets)
-        
-    except Exception as e:
-        flash(f"Error: {str(e)}", "danger")
+
+    except Exception:
+        import traceback; traceback.print_exc()
+        flash("শীট তালিকা লোড করতে সমস্যা হয়েছে।", "danger")
         return redirect(url_for('index'))
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  VIEW / OPEN A SINGLE SHEET
+# ─────────────────────────────────────────────────────────────────────────────
 @app.route('/kisti_sheet/<sheet_id>')
+@login_required
 def view_kisti_sheet(sheet_id):
     try:
-        # ১. শীট ডাটা নিয়ে আসা (এখানে ObjectId ই লাগবে)
         sheet = sheets_col.find_one({"_id": ObjectId(sheet_id)})
-        
         if not sheet:
-            flash("শীটটি পাওয়া যায়নি!", "warning")
+            flash("শীটটি পাওয়া যায়নি!", "warning")
             return redirect(url_for('kisti_sheets_list'))
 
-        # ২. কাস্টমার ডাটা খোঁজা (String অথবা ObjectId দুই ভাবেই চেক করা হচ্ছে)
-        # এটি নিশ্চিত করবে যে ডাটা যেভাবে সেভ হোক না কেন, তা লোড হবে।
+        # Support sheet_id stored as string OR ObjectId in customers collection
         customers = list(customers_col.find({
             "$or": [
-                {"sheet_id": sheet_id},           # যদি String হিসেবে থাকে
-                {"sheet_id": ObjectId(sheet_id)}  # যদি ObjectId হিসেবে থাকে
+                {"sheet_id": sheet_id},
+                {"sheet_id": ObjectId(sheet_id)}
             ]
         }).sort("sl_no", 1))
-        
-        # ৩. তারিখ চেক
+
+        # Ensure every extra_product has a 'niled' boolean field.
+        # Old records that pre-date this feature default to False (active/red).
+        for customer in customers:
+            eps = customer.get('extra_products', [])
+            for ep in eps:
+                if 'niled' not in ep:
+                    ep['niled'] = False
+            customer['extra_products'] = eps
+
         col_dates = sheet.get('manual_dates')
         if not col_dates or len(col_dates) < 5:
-            col_dates = ['১ম সপ্তাহের তারিখ ', '২য় সপ্তাহের তারিখ ', '৩য় সপ্তাহের তারিখ ', '৪র্থ সপ্তাহের তারিখ ', '৫ম সপ্তাহের তারিখ ']
-        
-        return render_template('kisti_sheet.html', sheet=sheet, customers=customers, col_dates=col_dates)
-        
-    except Exception as e:
-        print(f"Error in view_kisti_sheet: {e}") # কনসোলে আসল এরর দেখার জন্য
-        return redirect(url_for('kisti_sheets_list'))
-    
-@app.route('/set_dates/<sheet_id>', methods=['GET', 'POST'])
-def set_collection_dates(sheet_id):
-    try:
-        # স্ট্রিং আইডিকে অবজেক্ট আইডিতে রূপান্তর
-        obj_id = ObjectId(sheet_id)
-        
-        if request.method == 'POST':
-            # ফর্ম থেকে মাসের নাম সংগ্রহ
-            new_month = request.form.get('month', '').strip()
-            
-            # ফর্ম থেকে ৫টি তারিখ সংগ্রহ
-            dates = [
-                request.form.get('date1', '').strip(),
-                request.form.get('date2', '').strip(),
-                request.form.get('date3', '').strip(),
-                request.form.get('date4', '').strip(),
-                request.form.get('date5', '').strip()
+            col_dates = [
+                '১ম সপ্তাহের তারিখ',
+                '২য় সপ্তাহের তারিখ',
+                '৩য় সপ্তাহের তারিখ',
+                '৪র্থ সপ্তাহের তারিখ',
+                '৫ম সপ্তাহের তারিখ',
             ]
-            
-            # ডাটাবেসে আপডেট (এখন month এবং manual_dates দুটোই আপডেট হবে)
-            update_data = {
-                "manual_dates": dates
-            }
-            
-            # যদি ইউজার মাসের নাম ইনপুট দেয়, তবে সেটিও আপডেট লিস্টে যোগ হবে
-            if new_month:
-                update_data["month"] = new_month
 
-            result = db.Sheets.update_one(
-                {"_id": obj_id},
-                {"$set": update_data}
-            )
-            
-            if result.modified_count > 0 or result.matched_count > 0:
-                flash("মাস এবং ৫টি তারিখ সফলভাবে আপডেট করা হয়েছে!", "success")
-            else:
-                flash("কোনো পরিবর্তন করা হয়নি বা শীটটি পাওয়া যায়নি।", "warning")
-                
-            return redirect(url_for('view_kisti_sheet', sheet_id=sheet_id))
-        
-        # GET মেথড: ডাটা লোড করা
-        sheet = db.Sheets.find_one({"_id": obj_id})
-        return render_template('set_dates.html', sheet=sheet)
-        
-    except Exception as e:
-        print(f"Update Error: {e}")
-        flash(f"ত্রুটি: {e}", "danger")
+        return render_template(
+            'kisti_sheet.html',
+            sheet=sheet,
+            customers=customers,
+            col_dates=col_dates,
+        )
+
+    except Exception:
+        import traceback; traceback.print_exc()
+        flash("শীট লোড করতে সমস্যা হয়েছে।", "danger")
         return redirect(url_for('kisti_sheets_list'))
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  SAVE A SHEET
+#  Admin   → direct DB update
+#  Employee → insert into pending_updates for admin approval
+# ─────────────────────────────────────────────────────────────────────────────
 @app.route('/save_kisti/<sheet_id>', methods=['POST'])
 @login_required
 def save_kisti(sheet_id):
     try:
         user_role = session.get('role')
         user_name = session.get('user')
-        
-        # শীটের অধীনে থাকা সব কাস্টমার নিয়ে আসা
-        customers = list(customers_col.find({"sheet_id": sheet_id}))
-        
-        all_updates = [] # এমপ্লয়িদের জন্য সব ডাটা এখানে জমা হবে
+
+        customers = list(customers_col.find({
+            "$or": [
+                {"sheet_id": sheet_id},
+                {"sheet_id": ObjectId(sheet_id)}
+            ]
+        }))
+
+        pending_batch = []   # for non-admin users
 
         for customer in customers:
             cid = str(customer['_id'])
-            
-            # ডাটা সংগ্রহের হেল্পার ফাংশন
-            def get_val(f):
-                v = request.form.get(f'{f}_{cid}', '0').strip()
-                return float(v) if v else 0.0
 
-            def get_text(f):
-                return request.form.get(f'{f}_{cid}', '').strip()
+            # ── Form value helpers ────────────────────────────────────────────
+            def get_float(field):
+                v = request.form.get(f'{field}_{cid}', '').strip()
+                try:
+                    return float(v) if v else 0.0
+                except ValueError:
+                    return 0.0
 
-            # ডাটা স্ট্রাকচার তৈরি (নতুন এডিটেবল কিস্তি কলাম সহ)
-            kisti_data = [get_val(f'n_{i}') for i in range(1, 6)]
-            price_data = [get_val(f'm_{i}') for i in range(1, 6)]
-            
-            update_body = {
-                "join_date": get_text('join_date'), 
-                "duration_months": get_text('duration'), 
-                "product_name": get_text('item_name'),
-                "delivery_date": get_text('dist_date'),
-                "cost_price": get_val('item_price'),
-                "profit": get_val('item_profit'),
-                "per_kisti": get_val('per_kisti'),
-                "total_kisti": int(get_val('total_kisti')), # নতুন যুক্ত করা হয়েছে
-                "paid_kisti": int(get_val('paid_kisti')), # নতুন যুক্ত করা হয়েছে
+            def get_int(field):
+                return int(get_float(field))
+
+            def get_text(field):
+                return request.form.get(f'{field}_{cid}', '').strip()
+
+            # ── Merge niled state (once niled, always niled) ──────────────────
+            #
+            # The template POSTs:
+            #   niled_ep_data_<cid> = JSON boolean array, one per product.
+            #   e.g. "[false, true, false]"
+            #
+            # Rule: niled = incoming_flag OR existing_db_flag
+            #   → A True in the DB is never reverted to False.
+            #
+            raw_niled = request.form.get(f'niled_ep_data_{cid}', '[]').strip()
+            try:
+                incoming_niled = json.loads(raw_niled)
+                if not isinstance(incoming_niled, list):
+                    incoming_niled = []
+            except (ValueError, TypeError):
+                incoming_niled = []
+
+            existing_eps = customer.get('extra_products', [])
+            updated_eps  = []
+            for i, ep in enumerate(existing_eps):
+                ep_copy = dict(ep)
+                incoming_flag = bool(incoming_niled[i]) if i < len(incoming_niled) else False
+                db_flag       = bool(ep.get('niled', False))
+                ep_copy['niled'] = incoming_flag or db_flag   # permanent once True
+                updated_eps.append(ep_copy)
+
+            # ── Build update document ─────────────────────────────────────────
+            update_doc = {
+                "join_date":       get_text('join_date'),
+                "duration_months": get_text('duration'),
+                "product_name":    get_text('item_name'),
+                "delivery_date":   get_text('dist_date'),
+                "cost_price":      get_float('item_price'),
+                "profit":          get_float('item_profit'),
+                "per_kisti":       get_float('per_kisti'),
+                "total_kisti":     get_int('total_kisti'),
+                "paid_kisti":      get_int('paid_kisti'),
+                "extra_products":  updated_eps,          # ← niled state persisted
                 "collections": {
-                    "running_kisti": int(get_val('running_kisti')),
-                    "pre_due_n": get_val('pre_due_n'),
-                    "pre_due_m": get_val('pre_due_m'),
-                    "kisti_data": kisti_data,
-                    "price_data": price_data,
-                    "return_date": get_text('r_date'),
-                    "return_cash": get_val('r_cash'),
+                    "nil_status":    get_text('nil_status'),
+                    "running_kisti": get_int('running_kisti'),
+                    "pre_due_n":     get_float('pre_due_n'),
+                    "pre_due_m":     get_float('pre_due_m'),
+                    "kisti_data":    [get_float(f'n_{i}') for i in range(1, 6)],
+                    "price_data":    [get_float(f'm_{i}') for i in range(1, 6)],
+                    "return_date":   get_text('r_date'),
+                    "return_cash":   get_float('r_cash'),
                     "discount_date": get_text('discount_date'),
-                    "discount": get_val('discount'),
-                    "comment": get_text('comment')
-                }
+                    "discount":      get_float('discount'),
+                    "comment":       get_text('comment'),
+                },
             }
 
             if user_role == 'admin':
-                # অ্যাডমিন হলে সরাসরি আপডেট
-                customers_col.update_one({"_id": ObjectId(cid)}, {"$set": update_body})
+                customers_col.update_one(
+                    {"_id": ObjectId(cid)},
+                    {"$set": update_doc}
+                )
             else:
-                # এমপ্লয়ি হলে পেন্ডিং লিস্টে রাখা
-                all_updates.append({
-                    "customer_id": cid,
+                pending_batch.append({
+                    "customer_id":   cid,
                     "customer_name": customer.get('customer_name'),
-                    "sheet_id": sheet_id,
-                    "update_data": update_body,
-                    "added_by": user_name,
-                    "type": "sheet_update",
-                    "status": "pending",
-                    "entry_at": datetime.now()
+                    "sheet_id":      sheet_id,
+                    "update_data":   update_doc,
+                    "added_by":      user_name,
+                    "type":          "sheet_update",
+                    "status":        "pending",
+                    "entry_at":      datetime.now(),
                 })
 
+        # ── Flash result ──────────────────────────────────────────────────────
         if user_role == 'admin':
-            flash("শীট সরাসরি আপডেট করা হয়েছে!", "success")
+            flash("শীট সফলভাবে সেভ হয়েছে!", "success")
         else:
-            if all_updates:
-                # সব আপডেট একসাথে পেন্ডিং কালেকশনে সেভ করা
-                db.pending_updates.insert_many(all_updates)
-                flash("আপনার আপডেটগুলো অ্যাডমিন অনুমোদনের জন্য পাঠানো হয়েছে।", "info")
+            if pending_batch:
+                db.pending_updates.insert_many(pending_batch)
+                flash("আপডেট অ্যাডমিন অনুমোদনের জন্য পাঠানো হয়েছে।", "info")
             else:
                 flash("কোনো পরিবর্তন পাওয়া যায়নি।", "warning")
-        
-    except Exception as e:
-        print(f"Error saving kisti: {e}")
-        flash(f"তথ্য সংরক্ষণ করতে সমস্যা হয়েছে: {str(e)}", "danger")
-        
+
+    except Exception:
+        import traceback; traceback.print_exc()
+        flash("তথ্য সংরক্ষণ করতে সমস্যা হয়েছে।", "danger")
+
     return redirect(url_for('kisti_sheets_list'))
 
 @app.route('/print_kisti/<sheet_id>')
@@ -844,6 +874,7 @@ def delete_sheet(id):
         
     return redirect(url_for('index')) # আপনার প্রধান পেজের ফাংশন নাম দিন
 
+
 from bson import ObjectId
 
 @app.route('/manage_customers_page')
@@ -901,7 +932,7 @@ def manage_customers_page():
     except Exception as e:
         print(f"Error in manage_customers_page: {e}")
         return "Internal Server Error", 500
-        
+
 # কাস্টমার ডিলিট করার রাউট
 @app.route('/delete_customer_direct/<cust_id>')
 def delete_customer_direct(cust_id):
