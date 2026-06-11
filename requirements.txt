@@ -1,8 +1,6 @@
 Flask
 pymongo
 dnspython
-pdfkit
-gunicorn
-python-dotenv
 user-agents
+pdfkit
 Werkzeug
