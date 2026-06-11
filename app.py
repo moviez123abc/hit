@@ -627,6 +627,34 @@ def kisti_sheets_list():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+#  SET COLLECTION DATES FOR A SHEET
+# ─────────────────────────────────────────────────────────────────────────────
+@app.route('/set_dates/<sheet_id>', methods=['GET', 'POST'])
+@login_required
+def set_collection_dates(sheet_id):
+    try:
+        sheet = sheets_col.find_one({"_id": ObjectId(sheet_id)})
+        if not sheet:
+            flash("শীটটি পাওয়া যায়নি!", "warning")
+            return redirect(url_for('kisti_sheets_list'))
+
+        if request.method == 'POST':
+            month = request.form.get('month', '').strip()
+            dates = [request.form.get(f'date{i}', '').strip() for i in range(1, 6)]
+            update_data = {"month": month, "manual_dates": dates}
+            sheets_col.update_one({"_id": ObjectId(sheet_id)}, {"$set": update_data})
+            flash("তারিখ ও মাস সফলভাবে আপডেট করা হয়েছে!", "success")
+            return redirect(url_for('view_kisti_sheet', sheet_id=sheet_id))
+
+        return render_template('set_dates.html', sheet=sheet)
+
+    except Exception:
+        import traceback; traceback.print_exc()
+        flash("তারিখ সেট করতে সমস্যা হয়েছে।", "danger")
+        return redirect(url_for('kisti_sheets_list'))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 #  VIEW / OPEN A SINGLE SHEET
 # ─────────────────────────────────────────────────────────────────────────────
 @app.route('/kisti_sheet/<sheet_id>')
