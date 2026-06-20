@@ -783,17 +783,18 @@ def save_kisti(sheet_id):
                 "paid_kisti":      get_int('paid_kisti'),
                 "extra_products":  updated_eps,          # ← niled state persisted
                 "collections": {
-                    "nil_status":    get_text('nil_status'),
-                    "running_kisti": get_int('running_kisti'),
-                    "pre_due_n":     get_float('pre_due_n'),
-                    "pre_due_m":     get_float('pre_due_m'),
-                    "kisti_data":    [get_float(f'n_{i}') for i in range(1, 6)],
-                    "price_data":    [get_float(f'm_{i}') for i in range(1, 6)],
-                    "return_date":   get_text('r_date'),
-                    "return_cash":   get_float('r_cash'),
-                    "discount_date": get_text('discount_date'),
-                    "discount":      get_float('discount'),
-                    "comment":       get_text('comment'),
+                    "nil_status":       get_text('nil_status'),
+                    "running_kisti":    get_int('running_kisti'),
+                    "pre_due_n":        get_float('pre_due_n'),
+                    "pre_due_m":        get_float('pre_due_m'),
+                    "kisti_data":       [get_float(f'n_{i}') for i in range(1, 6)],
+                    "price_data":       [get_float(f'm_{i}') for i in range(1, 6)],
+                    "return_date":      get_text('r_date'),
+                    "return_cash":      get_float('r_cash'),
+                    "discount_date":    get_text('discount_date'),
+                    "discount":         get_float('discount'),
+                    "comment":          get_text('comment'),
+                    "total_m_balance":  get_float('total_m_balance'),
                 },
             }
 
@@ -1008,14 +1009,22 @@ def update_customer(cust_id):
         acc_no = request.form.get('acc_no')
         sl_no = request.form.get('sl_no')
         total_kisti = request.form.get('total_kisti')
-        update_data = {
-            "$set": {
-                "customer_name": name,
-                "acc_no": acc_no,
-                "sheet_id": sheet_id,
-                "sl_no": sl_no if sl_no else "০"
-            }
+        set_fields = {
+            "customer_name": name,
+            "acc_no": acc_no,
+            "sheet_id": sheet_id,
+            "sl_no": sl_no if sl_no else "০"
         }
+
+        # মোট সপ্তাহ ফিল্ডটি আগে রিড হলেও কখনো সেভ হতো না — এখন সেভ করা হচ্ছে
+        # যাতে কিস্তি পেজে নতুন তথ্য সঠিকভাবে দেখা যায়।
+        if total_kisti not in (None, ''):
+            try:
+                set_fields["total_kisti"] = int(float(total_kisti))
+            except (ValueError, TypeError):
+                pass
+
+        update_data = {"$set": set_fields}
 
         # নতুন এক্সট্রা পণ্য যোগ করার লজিক
         new_p_name = request.form.get('new_product')
@@ -1026,7 +1035,8 @@ def update_customer(cust_id):
                 "p_price": float(request.form.get('new_price') or 0),
                 "p_profit": float(request.form.get('new_profit') or 0),
                 "p_kisti": float(request.form.get('new_per_kisti') or 0),
-                "added_date": request.form.get('new_date') or datetime.now().strftime("%Y-%m-%d")
+                "added_date": request.form.get('new_date') or datetime.now().strftime("%Y-%m-%d"),
+                "niled": False
             }
             update_data["$push"] = {"extra_products": new_entry}
 
@@ -1076,6 +1086,64 @@ def delete_main_product(cust_id):
         return {"status": "success", "message": "মূল পণ্যটি রিমুভ হয়েছে"}, 200
     except Exception as e:
         return {"status": "error", "message": str(e)}, 500
+
+
+# --- ৫. এক্সট্রা পণ্য এডিট (Edit Extra Product) ---
+@app.route('/edit_extra_product/<cust_id>/<p_id>', methods=['POST'])
+def edit_extra_product(cust_id, p_id):
+    try:
+        p_name = request.form.get('p_name', '').strip()
+        p_price = float(request.form.get('p_price') or 0)
+        p_profit = float(request.form.get('p_profit') or 0)
+        p_kisti = float(request.form.get('p_kisti') or 0)
+        added_date = request.form.get('added_date', '').strip()
+
+        result = customers_col.update_one(
+            {"_id": ObjectId(cust_id), "extra_products.p_id": p_id},
+            {"$set": {
+                "extra_products.$.p_name": p_name,
+                "extra_products.$.p_price": p_price,
+                "extra_products.$.p_profit": p_profit,
+                "extra_products.$.p_kisti": p_kisti,
+                "extra_products.$.added_date": added_date,
+            }}
+        )
+        if result.matched_count > 0:
+            return {"status": "success", "message": "পণ্যটি আপডেট হয়েছে"}, 200
+        return {"status": "error", "message": "পণ্যটি পাওয়া যায়নি"}, 404
+    except Exception as e:
+        return {"status": "error", "message": str(e)}, 500
+
+
+# --- ৬. মূল পণ্য এডিট (Edit Main Product) ---
+@app.route('/edit_main_product/<cust_id>', methods=['POST'])
+def edit_main_product(cust_id):
+    try:
+        product_name = request.form.get('product_name', '').strip()
+        cost_price = float(request.form.get('cost_price') or 0)
+        profit = float(request.form.get('profit') or 0)
+        delivery_date = request.form.get('delivery_date', '').strip()
+        per_kisti = float(request.form.get('per_kisti') or 0)
+        total_kisti = request.form.get('total_kisti')
+
+        set_fields = {
+            "product_name": product_name,
+            "cost_price": cost_price,
+            "profit": profit,
+            "delivery_date": delivery_date,
+            "per_kisti": per_kisti,
+        }
+        if total_kisti not in (None, ''):
+            try:
+                set_fields["total_kisti"] = int(float(total_kisti))
+            except (ValueError, TypeError):
+                pass
+
+        customers_col.update_one({"_id": ObjectId(cust_id)}, {"$set": set_fields})
+        return {"status": "success", "message": "মূল পণ্যটি আপডেট হয়েছে"}, 200
+    except Exception as e:
+        return {"status": "error", "message": str(e)}, 500
+
 
 @app.route('/sheet_data')
 def sheet_data():
