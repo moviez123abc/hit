@@ -45,7 +45,6 @@
                             <th rowspan="2" class="col-name">সদস্যের নাম</th>
                             <th rowspan="2" class="col-date bg-secondary-h">দলভুক্ত তারিখ</th>
                             <th rowspan="2" class="col-acc">হিসাব নং</th>
-                            <th rowspan="2" class="col-dur bg-info-h">পরিশোধ মাস</th>
                             <th colspan="11" class="bg-primary-h">উপকরণের বিবরণ</th>
                             <th colspan="2" class="bg-secondary-h">গত মাসের জের</th>
                             <th colspan="9" class="bg-primary-h">সাপ্তাহিক নগদ আদায়</th>
@@ -76,7 +75,7 @@
                             {% for date in col_dates[:5] %}
                             <th class="bg-light-h">{{ date }}</th>
                             {% endfor %}
-                            <th class="bg-light-h fw-b">মোট মূল্য</th>
+                            <th class="bg-light-h fw-b" title="পণ্যের পূর্ণ মূল্য + আগের জের − এ পর্যন্ত আদায়কৃত মূল্য">মোট মূল্য</th>
                             <th class="bg-warn-h">মূল্যছাড় তাং</th>
                             <th class="bg-warn-h">মূল্য ছাড়</th>
                             <th class="bg-info-h fw-b">অবশিষ্ট মূল্য</th>
@@ -97,6 +96,9 @@
                             <input type="hidden" name="niled_ep_data_{{ c._id }}"
                                    id="niled_ep_data_{{ c._id }}"
                                    value="{{ niled_arr | tojson }}">
+                            <input type="hidden" name="total_m_balance_{{ c._id }}"
+                                   id="total_m_balance_input_{{ c._id }}"
+                                   value="{{ col.get('total_m_balance', '') }}">
 
                             {# ── Action cell ── #}
                             <td class="td-action">
@@ -116,12 +118,6 @@
                             </td>
 
                             <td class="td-center">{{ c.acc_no }}</td>
-
-                            <td class="td-center">
-                                <input type="text" name="duration_{{ c._id }}"
-                                       class="ks-in" style="width:70px"
-                                       value="{{ c.duration_months or '' }}">
-                            </td>
 
                             {# ── উপকরণের নাম ── #}
                             <td>
@@ -205,9 +201,11 @@
                                        value="{{ c.total_kisti if c.total_kisti != 0 else '' }}"></td>
                             <td><input type="number" name="paid_kisti_{{ c._id }}"
                                        class="ks-in paid-kisti-in"
+                                       readonly title="স্বয়ংক্রিয়ভাবে গণনা হয় — সাপ্তাহিক নগদ আদায়ের ঘর অনুযায়ী"
                                        value="{{ c.paid_kisti if c.paid_kisti != 0 else '' }}"></td>
                             <td><input type="number" name="running_kisti_{{ c._id }}"
-                                       class="ks-in"
+                                       class="ks-in running-kisti-in"
+                                       readonly title="স্বয়ংক্রিয়ভাবে গণনা হয় — সাপ্তাহিক নগদ আদায়ের ঘর অনুযায়ী"
                                        value="{{ col.get('running_kisti') if col.get('running_kisti') != 0 else '' }}"></td>
                             <td id="remain_kisti_{{ c._id }}" class="td-remain"></td>
 
@@ -270,7 +268,7 @@
                                        class="ks-in m-in"
                                        value="{{ price_list[i-1] if (price_list|length >= i and price_list[i-1] != 0) else '' }}"></td>
                             {% endfor %}
-                            <td class="td-total-m"><span id="total_m_{{ c._id }}"></span></td>
+                            <td class="td-total-m"><span id="total_m_{{ c._id }}">{{ col.get('total_m_balance', '') if col.get('total_m_balance', '') not in (0, '0', None) else '' }}</span></td>
                             <td><input type="date" name="discount_date_{{ c._id }}"
                                        class="ks-in ks-in-sm"
                                        value="{{ col.get('discount_date', '') }}"></td>
@@ -308,7 +306,7 @@
 <style>
 /* ── Page ── */
 body { padding-bottom: 90px; background: #f1f5f9; }
-.ks-page { font-family: 'Hind Siliguri', sans-serif; }
+.ks-page { font-family: 'Kalpurush', 'Times New Roman', Times, serif; }
 
 /* ── Header card ── */
 .ks-header-card {
@@ -391,6 +389,12 @@ body { padding-bottom: 90px; background: #f1f5f9; }
 .ks-in-sm { width: 95px; font-size: 10px; }
 .w100 { width: 100%; }
 .mb1  { margin-bottom: 3px; }
+
+/* ── Auto-computed (readonly) fields — আদায় সপ্তাহ ও চলমান সপ্তাহ স্বয়ংক্রিয় ── */
+.ks-in[readonly] {
+    background: #f1f5f9; color: #334155; font-weight: 700;
+    cursor: not-allowed;
+}
 
 /* ── Calculated / balance cells ── */
 .td-calc   { background: #f8fafc; font-weight: 700; }
@@ -545,10 +549,34 @@ function calculateRow(cid, row) {
     const extraEl = document.getElementById('extra_total_display_' + cid);
     if (extraEl) extraEl.textContent = extraTotal > 0 ? ('৳' + extraTotal) : '';
 
+    // nil হয়ে গেলে এই কলামগুলো আর স্বয়ংক্রিয়ভাবে পরিবর্তন হবে না (ফ্রিজড)
+    const isNiled = (document.getElementById('nil_status_input_' + cid)?.value === 'true');
+
+    // ── আদায়কৃত সপ্তাহ — সাপ্তাহিক নগদ আদায়ের যে কয়টি ঘরে টাকা বসানো হয়েছে (>0) তার সংখ্যা ──
+    const paidKInput = row.querySelector('.paid-kisti-in');
+    let paidK = parseFloat(paidKInput?.value) || 0;
+    if (!isNiled) {
+        let collectedWeeks = 0;
+        row.querySelectorAll('.n-in').forEach(i => {
+            if ((parseFloat(i.value) || 0) > 0) collectedWeeks++;
+        });
+        paidK = collectedWeeks;
+        if (paidKInput) paidKInput.value = collectedWeeks > 0 ? collectedWeeks : '';
+    }
+
+    // ── চলমান সপ্তাহ — এই শীটে যে কয়টি সাপ্তাহিক ঘর স্পর্শ করা হয়েছে (খালি না থাকা) তার সংখ্যা ──
+    const runningKInput = row.querySelector('.running-kisti-in');
+    if (!isNiled) {
+        let touchedWeeks = 0;
+        row.querySelectorAll('.n-in').forEach(i => {
+            if (i.value !== '') touchedWeeks++;
+        });
+        if (runningKInput) runningKInput.value = touchedWeeks > 0 ? touchedWeeks : '';
+    }
+
     // বাকি সপ্তাহ
     const totalK = parseFloat(row.querySelector('.total-kisti-in')?.value) || 0;
-    const paidK  = parseFloat(row.querySelector('.paid-kisti-in')?.value)  || 0;
-    setDisplay('remain_kisti_' + cid, totalK - paidK || '');
+    setDisplay('remain_kisti_' + cid, (totalK - paidK) || '');
 
     // নগদ আদায়
     let totalN = 0;
@@ -557,12 +585,34 @@ function calculateRow(cid, row) {
     setDisplay('total_n_' + cid, totalN || '');
     setDisplay('bal_n_'   + cid, (totalN - returnN) || '');
 
-    // মূল্য আদায়
+    // মূল্য আদায় — কালেক্ট করা টাকা মোট মূল্য (বকেয়া) থেকে সাথে সাথে বাদ যাবে
     let totalM = 0;
     row.querySelectorAll('.m-in').forEach(i => totalM += parseFloat(i.value) || 0);
     const disc = parseFloat(row.querySelector('.d-in')?.value) || 0;
-    setDisplay('total_m_' + cid, totalM || '');
-    setDisplay('bal_m_'   + cid, (totalM + disc) || '');
+
+    if (!isNiled) {
+        // উপকরণের পূর্ণ মূল্য (মূল প্রোডাক্ট + সক্রিয়/non-niled এক্সট্রা প্রোডাক্টসমূহ)
+        const fullProductPrice = mainPrice + mainProfit + extraTotal;
+        const preDueM = parseFloat(row.querySelector('.pre-due-m')?.value) || 0;
+        // মোট মূল্য (বকেয়া) = পূর্ণ মূল্য + আগের জের − এই শীটে আদায়কৃত মূল্য
+        const outstandingM = fullProductPrice + preDueM - totalM;
+        setDisplay('total_m_' + cid, outstandingM || '');
+        const balInput = document.getElementById('total_m_balance_input_' + cid);
+        if (balInput) balInput.value = outstandingM || '';
+    }
+    setDisplay('bal_m_' + cid, (totalM + disc) || '');
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  FREEZE A ROW'S AUTOMATIC FIELDS AFTER NIL — once nil'd, আদায়কৃত
+//  সপ্তাহ, চলমান সপ্তাহ, বাকি সপ্তাহ এবং মোট মূল্য আর স্বয়ংক্রিয়ভাবে
+//  পরিবর্তন হবে না।
+// ─────────────────────────────────────────────────────────────────
+function freezeAutomatedFields(row) {
+    const paidKInput = row.querySelector('.paid-kisti-in');
+    const runningKInput = row.querySelector('.running-kisti-in');
+    if (paidKInput) paidKInput.readOnly = true;
+    if (runningKInput) runningKInput.readOnly = true;
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -587,6 +637,16 @@ function performNilAction(cid, row) {
     if (preDueN) preDueN.value = (parseFloat(preDueN.value) || 0) + balN;
     if (preDueM) preDueM.value = ((parseFloat(preDueM.value) || 0) + selectedExtraValue) - balM;
 
+    // মোট মূল্য (বকেয়া) — nil মুহূর্তের নতুন (আপডেটেড) জের অনুযায়ী হিসাব করে স্থায়ীভাবে ফ্রিজ করা হবে।
+    // এই Nil অ্যাকশনে বর্তমানে সক্রিয় সব এক্সট্রা প্রোডাক্ট নিল হয়ে যাচ্ছে, তাই এরপর সক্রিয়
+    // এক্সট্রা প্রোডাক্টের মূল্য থাকবে না (0)।
+    const mainPrice  = parseFloat(row.querySelector('.price-calc')?.value)  || 0;
+    const mainProfit = parseFloat(row.querySelector('.profit-calc')?.value) || 0;
+    const newOutstandingM = mainPrice + mainProfit + (parseFloat(preDueM?.value) || 0);
+    setDisplay('total_m_' + cid, newOutstandingM || '');
+    const balInput = document.getElementById('total_m_balance_input_' + cid);
+    if (balInput) balInput.value = newOutstandingM || '';
+
     // Clear weekly inputs
     row.querySelectorAll('.n-in, .m-in, .d-in, .r-in').forEach(i => i.value = '');
     row.querySelectorAll(
@@ -596,6 +656,7 @@ function performNilAction(cid, row) {
     // nil_status flag
     const nsInput = document.getElementById('nil_status_input_' + cid);
     if (nsInput) nsInput.value = 'true';
+    freezeAutomatedFields(row);
 
     // Mark all currently-active extra products as niled PERMANENTLY
     const niledArr = getNiledArr(cid);
@@ -659,6 +720,10 @@ window.addEventListener('DOMContentLoaded', () => {
         niledArr.forEach((isNiled, idx) => {
             if (isNiled) applyNiledVisuals(cid, row, idx);
         });
+
+        // যদি এই সদস্যের সারি আগে থেকেই nil হয়ে থাকে, তাহলে স্বয়ংক্রিয় ফিল্ডগুলো ফ্রিজ থাকবে
+        const nsVal = document.getElementById('nil_status_input_' + cid)?.value;
+        if (nsVal === 'true') freezeAutomatedFields(row);
 
         // Calculate row totals
         calculateRow(cid, row);

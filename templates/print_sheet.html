@@ -48,7 +48,7 @@
       }
 
       body {
-        font-family: 'Kalpurush', serif;
+        font-family: 'Kalpurush', 'Times New Roman', Times, serif;
         background-color: white;
         color: black;
         margin: 0;
@@ -309,7 +309,6 @@
           <col style="width: 125px" />  <!-- সদস্যের নাম -->
           <col style="width: 40px" />   <!-- দল ভুক্ত হওয়ার তাং -->
           <col style="width: 32px" />   <!-- হিসাব নং -->
-          <col style="width: 25px" />   <!-- পরিশোধিত মাস -->
           <col style="width: 110px" />  <!-- উপকরণের নাম (wider) -->
           <col style="width: 40px" />   <!-- বিতরণ তারিখ -->
           <col style="width: 35px" />   <!-- মূল্য -->
@@ -359,9 +358,6 @@
             </th>
             <th rowspan="2">
               <span class="v-text">হিসাব নং</span>
-            </th>
-            <th rowspan="2">
-              <span class="v-text">পরিশোধিত মাস</span>
             </th>
             <th colspan="12">উপকরণের বিবরণ</th>
             <th colspan="2">গত মাসের জের</th>
@@ -449,7 +445,6 @@
               {% else %}{{ c.join_date or '' }}{% endif %}
             </td>
             <td>{{ c.acc_no }}</td>
-            <td>{{ c.duration_months or '' }}</td>
 
             <td style="width: 140px">
               {{ c.product_name or '' }} {% for ep in c.extra_products %}<span

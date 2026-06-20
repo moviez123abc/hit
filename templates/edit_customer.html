@@ -48,7 +48,7 @@
                             <div class="list-group shadow-sm border-0">
                                 
                                 {% if c.product_name and c.product_name != "" %}
-                                <div class="list-group-item d-flex justify-content-between align-items-center bg-light border-0 mb-2 rounded-3 shadow-sm">
+                                <div class="list-group-item d-flex justify-content-between align-items-center bg-light border-0 mb-2 rounded-3 shadow-sm" id="main-view-{{ c._id|string }}">
                                     <div class="ps-2">
                                         <div class="d-flex align-items-center mb-1">
                                             <span class="badge bg-primary me-2">Main</span>
@@ -57,17 +57,56 @@
                                         <div class="x-small text-muted">
                                             <i class="fas fa-money-bill-wave me-1"></i>মূল্য: {{ c.cost_price }} | 
                                             <i class="fas fa-chart-line me-1"></i>সার্ভিস চার্জ: {{ c.profit }} | 
+                                            <i class="fas fa-bolt me-1"></i>সাপ্তাহিক: {{ c.per_kisti }} | 
+                                            <i class="fas fa-calendar-week me-1"></i>মোট সপ্তাহ: {{ c.total_kisti }} | 
                                             <i class="fas fa-calendar-day me-1"></i>{{ c.delivery_date }}
                                         </div>
                                     </div>
-                                    <button type="button" class="btn btn-danger btn-sm rounded-circle shadow-sm" style="width: 32px; height: 32px;" onclick="deleteMainProductPrompt('{{ c._id|string }}')" title="ডিলিট">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
+                                    <div class="d-flex gap-1">
+                                        <button type="button" class="btn btn-outline-primary btn-sm rounded-circle shadow-sm" style="width: 32px; height: 32px;" onclick="toggleMainEdit('{{ c._id|string }}')" title="এডিট">
+                                            <i class="fas fa-pen"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-danger btn-sm rounded-circle shadow-sm" style="width: 32px; height: 32px;" onclick="deleteMainProductPrompt('{{ c._id|string }}')" title="ডিলিট">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="list-group-item bg-white border-0 mb-2 rounded-3 shadow-sm d-none" id="main-edit-{{ c._id|string }}">
+                                    <div class="row g-2">
+                                        <div class="col-md-6">
+                                            <label class="x-small fw-bold text-muted">উপকরণের নাম</label>
+                                            <input type="text" id="m_product_name_{{ c._id|string }}" class="form-control form-control-sm" value="{{ c.product_name }}">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="x-small fw-bold text-muted">বিতরণ তারিখ</label>
+                                            <input type="date" id="m_delivery_date_{{ c._id|string }}" class="form-control form-control-sm" value="{{ c.delivery_date }}">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="x-small fw-bold text-muted">মূল্য</label>
+                                            <input type="number" step="any" id="m_cost_price_{{ c._id|string }}" class="form-control form-control-sm" value="{{ c.cost_price }}">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="x-small fw-bold text-muted">সার্ভিস চার্জ</label>
+                                            <input type="number" step="any" id="m_profit_{{ c._id|string }}" class="form-control form-control-sm" value="{{ c.profit }}">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="x-small fw-bold text-muted">সাপ্তাহিক মূল্য</label>
+                                            <input type="number" step="any" id="m_per_kisti_{{ c._id|string }}" class="form-control form-control-sm" value="{{ c.per_kisti }}">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="x-small fw-bold text-muted">মোট সপ্তাহ</label>
+                                            <input type="number" id="m_total_kisti_{{ c._id|string }}" class="form-control form-control-sm" value="{{ c.total_kisti }}">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-2 mt-2">
+                                        <button type="button" class="btn btn-success btn-sm" onclick="saveMainEdit('{{ c._id|string }}')"><i class="fas fa-check me-1"></i>সেভ</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleMainEdit('{{ c._id|string }}')"><i class="fas fa-times me-1"></i>বাতিল</button>
+                                    </div>
                                 </div>
                                 {% endif %}
 
                                 {% for ep in c.extra_products %}
-                                <div class="list-group-item d-flex justify-content-between align-items-center border-0 mb-2 rounded-3 shadow-sm border-start border-success border-4">
+                                <div class="list-group-item d-flex justify-content-between align-items-center border-0 mb-2 rounded-3 shadow-sm border-start border-success border-4" id="ep-view-{{ c._id|string }}-{{ ep.p_id }}">
                                     <div class="ps-2">
                                         <div class="d-flex align-items-center mb-1">
                                             <span class="badge bg-success me-2">Extra</span>
@@ -77,9 +116,42 @@
                                             মূল্য: {{ ep.p_price }} | সার্ভিস চার্জ: {{ ep.p_profit }} | সাপ্তাহিক মূল্য: {{ ep.p_kisti }} | তাং: {{ ep.added_date }}
                                         </div>
                                     </div>
-                                    <button type="button" class="btn btn-outline-danger btn-sm rounded-circle" style="width: 32px; height: 32px;" onclick="deleteExtraProduct('{{ c._id|string }}', '{{ ep.p_id }}')" title="মুছে ফেলুন">
-                                        <i class="fas fa-times"></i>
-                                    </button>
+                                    <div class="d-flex gap-1">
+                                        <button type="button" class="btn btn-outline-primary btn-sm rounded-circle" style="width: 32px; height: 32px;" onclick="toggleExtraEdit('{{ c._id|string }}', '{{ ep.p_id }}')" title="এডিট">
+                                            <i class="fas fa-pen"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger btn-sm rounded-circle" style="width: 32px; height: 32px;" onclick="deleteExtraProduct('{{ c._id|string }}', '{{ ep.p_id }}')" title="মুছে ফেলুন">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="list-group-item bg-white border-0 mb-2 rounded-3 shadow-sm border-start border-success border-4 d-none" id="ep-edit-{{ c._id|string }}-{{ ep.p_id }}">
+                                    <div class="row g-2">
+                                        <div class="col-md-6">
+                                            <label class="x-small fw-bold text-muted">উপকরণের নাম</label>
+                                            <input type="text" id="ep_p_name_{{ c._id|string }}_{{ ep.p_id }}" class="form-control form-control-sm" value="{{ ep.p_name }}">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="x-small fw-bold text-muted">বিতরণ তারিখ</label>
+                                            <input type="date" id="ep_added_date_{{ c._id|string }}_{{ ep.p_id }}" class="form-control form-control-sm" value="{{ ep.added_date }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="x-small fw-bold text-muted">মূল্য</label>
+                                            <input type="number" step="any" id="ep_p_price_{{ c._id|string }}_{{ ep.p_id }}" class="form-control form-control-sm" value="{{ ep.p_price }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="x-small fw-bold text-muted">সার্ভিস চার্জ</label>
+                                            <input type="number" step="any" id="ep_p_profit_{{ c._id|string }}_{{ ep.p_id }}" class="form-control form-control-sm" value="{{ ep.p_profit }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="x-small fw-bold text-muted">সাপ্তাহিক মূল্য</label>
+                                            <input type="number" step="any" id="ep_p_kisti_{{ c._id|string }}_{{ ep.p_id }}" class="form-control form-control-sm" value="{{ ep.p_kisti }}">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-2 mt-2">
+                                        <button type="button" class="btn btn-success btn-sm" onclick="saveExtraEdit('{{ c._id|string }}', '{{ ep.p_id }}')"><i class="fas fa-check me-1"></i>সেভ</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleExtraEdit('{{ c._id|string }}', '{{ ep.p_id }}')"><i class="fas fa-times me-1"></i>বাতিল</button>
+                                    </div>
                                 </div>
                                 {% endfor %}
 
@@ -189,6 +261,69 @@
                 location.reload();
             } else {
                 alert("মেইন প্রোডাক্ট রিসেট করা সম্ভব হয়নি।");
+            }
+        } catch (error) {
+            console.error("Error:", error);
+        }
+    }
+
+    // ── মূল পণ্য এডিট (Edit Main Product) ──
+    function toggleMainEdit(cid) {
+        document.getElementById('main-view-' + cid).classList.toggle('d-none');
+        document.getElementById('main-edit-' + cid).classList.toggle('d-none');
+    }
+
+    async function saveMainEdit(cid) {
+        const get = (suffix) => document.getElementById('m_' + suffix + '_' + cid).value;
+        const formData = new URLSearchParams();
+        formData.append('product_name', get('product_name'));
+        formData.append('delivery_date', get('delivery_date'));
+        formData.append('cost_price', get('cost_price'));
+        formData.append('profit', get('profit'));
+        formData.append('per_kisti', get('per_kisti'));
+        formData.append('total_kisti', get('total_kisti'));
+
+        try {
+            const response = await fetch(`/edit_main_product/${cid}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData
+            });
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert("মূল পণ্য আপডেট করতে সমস্যা হয়েছে।");
+            }
+        } catch (error) {
+            console.error("Error:", error);
+        }
+    }
+
+    // ── এক্সট্রা পণ্য এডিট (Edit Extra Product) ──
+    function toggleExtraEdit(cid, pid) {
+        document.getElementById('ep-view-' + cid + '-' + pid).classList.toggle('d-none');
+        document.getElementById('ep-edit-' + cid + '-' + pid).classList.toggle('d-none');
+    }
+
+    async function saveExtraEdit(cid, pid) {
+        const get = (field) => document.getElementById('ep_' + field + '_' + cid + '_' + pid).value;
+        const formData = new URLSearchParams();
+        formData.append('p_name', get('p_name'));
+        formData.append('added_date', get('added_date'));
+        formData.append('p_price', get('p_price'));
+        formData.append('p_profit', get('p_profit'));
+        formData.append('p_kisti', get('p_kisti'));
+
+        try {
+            const response = await fetch(`/edit_extra_product/${cid}/${pid}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData
+            });
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert("পণ্য আপডেট করতে সমস্যা হয়েছে।");
             }
         } catch (error) {
             console.error("Error:", error);
