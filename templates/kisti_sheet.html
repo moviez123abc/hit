@@ -108,6 +108,12 @@
                             <input type="hidden" name="paid_kisti_total_{{ c._id }}"
                                    id="paid_kisti_total_input_{{ c._id }}"
                                    value="{{ c.paid_kisti if c.paid_kisti else 0 }}">
+                            {% set kisti_list_base = col.get('kisti_data', []) %}
+                            <input type="hidden"
+                                   id="running_kisti_base_{{ c._id }}"
+                                   data-base-collected="{{ kisti_list_base | map('float') | select('gt', 0) | list | length }}"
+                                   data-base-touched="{{ kisti_list_base | length }}"
+                                   value="">
                             <input type="hidden" name="running_kisti_total_{{ c._id }}"
                                    id="running_kisti_total_input_{{ c._id }}"
                                    value="{{ col.get('running_kisti') if col.get('running_kisti') else 0 }}">
@@ -216,7 +222,7 @@
                                        value="{{ c.paid_kisti if c.paid_kisti != 0 else '' }}"></td>
                             <td><input type="number" name="running_kisti_{{ c._id }}"
                                        class="ks-in running-kisti-in"
-                                       readonly title="Nil করার সময় জিজ্ঞাসিত সংখ্যা অনুযায়ী স্বয়ংক্রিয়ভাবে যোগ হয়"
+                                       readonly title="স্বয়ংক্রিয়ভাবে গণনা হয় — সাপ্তাহিক নগদ আদায়ের ঘরে টাকা বসালেই কিউমুলেটিভ যোগ হয়"
                                        value="{{ col.get('running_kisti') if col.get('running_kisti') != 0 else '' }}"></td>
                             <td id="remain_kisti_{{ c._id }}" class="td-remain"></td>
 
@@ -608,12 +614,25 @@ function calculateRow(cid, row) {
         if (paidKInput) paidKInput.value = paidK > 0 ? paidK : '';
     }
 
-    // ── চলমান সপ্তাহ — শুধুমাত্র Nil-এর সময় ইউজারের টাইপ করা সংখ্যা (৪ বা ৫ ইত্যাদি)
-    // টোটালের সাথে যোগ হয়। সাধারণ টাইপিং এ এটি পরিবর্তন হয় না। ──
-    const runningKInput = row.querySelector('.running-kisti-in');
-    if (runningKInput && !runningKInput.value) {
-        const storedRunning = parseFloat(document.getElementById('running_kisti_total_input_' + cid)?.value) || 0;
-        runningKInput.value = storedRunning > 0 ? storedRunning : '';
+    // ── চলমান সপ্তাহ — কিউমুলেটিভ (customer-level) কাউন্টার।
+    // সাপ্তাহিক "নগদ আদায়" (cash collection, n-in) ঘরে টাকা বসালেই (>0) এটি গণনা হয়।
+    // প্রতিবার যে কয়টি নতুন ঘরে নগদ > 0 বসানো হয়েছে (এই শীটে আগে যা ছিল তার চেয়ে বেশি),
+    // সেই পার্থক্যটুকু টোটালের সাথে যোগ হয়। Nil হলে সম্পূর্ণ ফ্রিজ। ──
+    const runningKInput     = row.querySelector('.running-kisti-in');
+    const runningBaseHolder = document.getElementById('running_kisti_base_' + cid);
+    const runningTotalHolder = document.getElementById('running_kisti_total_input_' + cid);
+    const runningBaseCollected = parseInt(runningBaseHolder?.dataset.baseCollected, 10) || 0;
+
+    if (!isNiled) {
+        let currentTouchedN = 0;
+        row.querySelectorAll('.n-in').forEach(i => {
+            if ((parseFloat(i.value) || 0) > 0) currentTouchedN++;
+        });
+        const runningDelta = currentTouchedN - runningBaseCollected; // can be negative if a value is cleared
+        const storedRunningTotal = parseFloat(runningTotalHolder?.value) || 0;
+        let runningK = storedRunningTotal + runningDelta;
+        if (runningK < 0) runningK = 0;
+        if (runningKInput) runningKInput.value = runningK > 0 ? runningK : '';
     }
 
     // বাকি সপ্তাহ
@@ -667,11 +686,6 @@ function freezeAutomatedFields(row) {
 // ─────────────────────────────────────────────────────────────────
 function performNilAction(cid, row) {
   try {
-    // ── নিল করার সময় এই মাসে কয়টি কিস্তি কালেক্ট হলো (চলমান সপ্তাহ) তা জিজ্ঞেস করা হবে ──
-    let runningInput = prompt('এই মাসে কয়টি কিস্তি কালেক্ট করা হয়েছে? (চলমান সপ্তাহ — যেমন: 4 অথবা 5)', '');
-    if (runningInput === null) return false; // ইউজার বাতিল করলে Nil অ্যাকশনও বাতিল হবে
-    const runningAdd = parseFloat(runningInput) || 0;
-
     // Sum of active + checked extra products
     let selectedExtraValue = 0;
     row.querySelectorAll('.ep-cb-row').forEach(epRow => {
@@ -705,13 +719,11 @@ function performNilAction(cid, row) {
     const paidTotalHolder = document.getElementById('paid_kisti_total_input_' + cid);
     if (paidTotalHolder) paidTotalHolder.value = finalPaidK;
 
-    // ── চলমান সপ্তাহ — Nil মুহূর্তে জিজ্ঞাসিত সংখ্যাটি টোটালের সাথে যোগ হয়ে চূড়ান্তভাবে ফিক্স হবে ──
+    // ── চলমান সপ্তাহ — Nil মুহূর্তে যা গণনা হয়েছিল তা চূড়ান্তভাবে টোটালে ফিক্স হয়ে যাবে ──
     const runningKInput = row.querySelector('.running-kisti-in');
+    const finalRunningK = parseFloat(runningKInput?.value) || 0;
     const runningTotalHolder = document.getElementById('running_kisti_total_input_' + cid);
-    const prevRunningTotal = parseFloat(runningTotalHolder?.value) || 0;
-    const newRunningTotal = prevRunningTotal + runningAdd;
-    if (runningTotalHolder) runningTotalHolder.value = newRunningTotal;
-    if (runningKInput) runningKInput.value = newRunningTotal > 0 ? newRunningTotal : '';
+    if (runningTotalHolder) runningTotalHolder.value = finalRunningK;
 
     // Clear weekly inputs
     row.querySelectorAll('.n-in, .m-in, .d-in, .r-in').forEach(i => i.value = '');
