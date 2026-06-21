@@ -589,30 +589,30 @@ function calculateRow(cid, row) {
     const extraEl = document.getElementById('extra_total_display_' + cid);
     if (extraEl) extraEl.textContent = extraTotal > 0 ? ('৳' + extraTotal) : '';
 
-    // nil হয়ে গেলে এই কলামগুলো আর স্বয়ংক্রিয়ভাবে পরিবর্তন হবে না (ফ্রিজড)
+    // nil হয়ে গেলে মোট মূল্য (বকেয়া) আর স্বয়ংক্রিয়ভাবে পরিবর্তন হবে না (ফ্রিজড)
     const isNiled = (document.getElementById('nil_status_input_' + cid)?.value === 'true');
 
-    // ── আদায়কৃত সপ্তাহ — কিউমুলেটিভ (customer-level) কাউন্টার।
-    // সাপ্তাহিক "মূল্য আদায়" (price collection, m-in) ঘরে টাকা বসালেই (>0) এটি গণনা হয়।
-    // প্রতিবার যে কয়টি নতুন ঘরে মূল্য > 0 বসানো হয়েছে (এই শীটে আগে যা ছিল তার চেয়ে বেশি),
-    // সেই পার্থক্যটুকু টোটালের সাথে যোগ হয়। Nil হলে সম্পূর্ণ ফ্রিজ। ──
-    const paidKInput  = row.querySelector('.paid-kisti-in');
-    const baseHolder  = document.getElementById('paid_kisti_base_' + cid);
-    const totalHolder = document.getElementById('paid_kisti_total_input_' + cid);
-    const baseCollected = parseInt(baseHolder?.dataset.baseCollected, 10) || 0;
-    let paidK = parseFloat(totalHolder?.value) || 0;
+    // ── আদায়কৃত কিস্তি — সবসময় লাইভ গণনা হয় (Nil হলেও ফ্রিজ হয় না)।
+    //   paid = carryover (আগের মাস/Nil থেকে জমা) + এই শীটের "মূল্য আদায়" (m-in)
+    //   ঘরে ০ ছাড়া যতগুলো এন্ট্রি আছে তার সংখ্যা।
+    //   → মূল্য আদায়ের ঘরে এন্ট্রি দিলেই সাথে সাথে ১ বাড়ে।
+    //   → Nil করলে current সংখ্যাটি carryover-এ ভাঁজ হয়ে ঘর ক্লিয়ার হয়, তাই
+    //     Nil-এ মান কমে/বাড়ে না; কিন্তু এরপর নতুন এন্ট্রিতে আবার বাড়ে।
+    const paidKInput = row.querySelector('.paid-kisti-in');
+    let paidCarryover = parseFloat(row.dataset.paidCarryover);
+    if (isNaN(paidCarryover)) paidCarryover = 0;
 
-    if (!isNiled) {
-        let currentCollected = 0;
-        row.querySelectorAll('.m-in').forEach(i => {
-            if ((parseFloat(i.value) || 0) > 0) currentCollected++;
-        });
-        const delta = currentCollected - baseCollected; // can be negative if a value is cleared
-        const storedTotal = parseFloat(totalHolder?.value) || 0;
-        paidK = storedTotal + delta;
-        if (paidK < 0) paidK = 0;
-        if (paidKInput) paidKInput.value = paidK > 0 ? paidK : '';
-    }
+    let currentCollected = 0;
+    row.querySelectorAll('.m-in').forEach(i => {
+        if ((parseFloat(i.value) || 0) > 0) currentCollected++;
+    });
+
+    let paidK = paidCarryover + currentCollected;
+    if (paidK < 0) paidK = 0;
+    if (paidKInput) paidKInput.value = paidK > 0 ? paidK : '';
+    // সার্ভারে যে মানটি সেভ হবে (paid_kisti) সেটিও সিঙ্ক রাখা হয়
+    const paidTotalHolder = document.getElementById('paid_kisti_total_input_' + cid);
+    if (paidTotalHolder) paidTotalHolder.value = paidK;
 
     // ── চলমান কিস্তি — এখন আর সাপ্তাহিক ঘর থেকে স্বয়ংক্রিয়ভাবে গণনা হয় না।
     // শুধুমাত্র "Nil" করার সময় পপ-আপে দেওয়া "এই মাসে কয়টা তারিখে আদায় হয়েছে"
@@ -698,11 +698,17 @@ function performNilAction(cid, row, runningAddCount) {
     const balInput = document.getElementById('total_m_balance_input_' + cid);
     if (balInput) balInput.value = newOutstandingM || '';
 
-    // ── আদায়কৃত সপ্তাহ — Nil মুহূর্তে যা গণনা হয়েছিল তা চূড়ান্তভাবে টোটালে ফিক্স হয়ে যাবে ──
-    const paidKInput = row.querySelector('.paid-kisti-in');
-    const finalPaidK = parseFloat(paidKInput?.value) || 0;
-    const paidTotalHolder = document.getElementById('paid_kisti_total_input_' + cid);
-    if (paidTotalHolder) paidTotalHolder.value = finalPaidK;
+    // ── আদায়কৃত কিস্তি — Nil-এর সময় এই শীটের current "মূল্য আদায়" সংখ্যাটি
+    //   carryover-এ ভাঁজ করে রাখা হয়। ফলে নিচে ঘরগুলো ক্লিয়ার করলেও মান কমে না
+    //   (Nil-এ আদায়কৃত কিস্তি অপরিবর্তিত), আবার পরবর্তীতে নতুন এন্ট্রি দিলে
+    //   carryover-এর ওপর গণনা শুরু হয়। ──
+    let curMCount = 0;
+    row.querySelectorAll('.m-in').forEach(i => {
+        if ((parseFloat(i.value) || 0) > 0) curMCount++;
+    });
+    let pc = parseFloat(row.dataset.paidCarryover);
+    if (isNaN(pc)) pc = 0;
+    row.dataset.paidCarryover = pc + curMCount;
 
     // ── চলমান কিস্তি — Nil-এর সময় পপ-আপে দেওয়া তারিখ-সংখ্যা পূর্বের মানের সাথে যোগ হবে।
     // (আদায়কৃত কিস্তির মত সাপ্তাহিক ঘর থেকে স্বয়ংক্রিয়ভাবে গণনা হয় না।) ──
@@ -859,9 +865,22 @@ window.addEventListener('DOMContentLoaded', () => {
             if (isNiled) applyNiledVisuals(cid, row, idx);
         });
 
-        // যদি এই সদস্যের সারি আগে থেকেই nil হয়ে থাকে, তাহলে স্বয়ংক্রিয় ফিল্ডগুলো ফ্রিজ থাকবে
-        const nsVal = document.getElementById('nil_status_input_' + cid)?.value;
-        if (nsVal === 'true') freezeAutomatedFields(row);
+        // ── আদায়কৃত কিস্তির carryover সেটআপ ──
+        // DB-তে সংরক্ষিত paid_kisti থেকে এই শীটে এখন ভরা "মূল্য আদায়" (m-in)
+        // ঘরের সংখ্যা বাদ দিলে আগের মাস/Nil থেকে জমা হওয়া base (carryover) পাওয়া যায়।
+        // এরপর paid = carryover + লাইভ m-in সংখ্যা — তাই নতুন এন্ট্রিতে সাথে সাথে বাড়ে।
+        // (পুরাতন + নতুন সব কাস্টমারের জন্য কাজ করে; মান না থাকলে 0 ধরা হয়।)
+        const storedPaidInit = parseFloat(
+            document.getElementById('paid_kisti_total_input_' + cid)?.value) || 0;
+        let initialMCount = 0;
+        row.querySelectorAll('.m-in').forEach(i => {
+            if ((parseFloat(i.value) || 0) > 0) initialMCount++;
+        });
+        let carryoverInit = storedPaidInit - initialMCount;
+        if (carryoverInit < 0) carryoverInit = 0;
+        row.dataset.paidCarryover = carryoverInit;
+
+
 
         // Calculate row totals
         calculateRow(cid, row);
