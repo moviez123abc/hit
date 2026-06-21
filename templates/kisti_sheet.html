@@ -222,7 +222,7 @@
                                        value="{{ c.paid_kisti if c.paid_kisti != 0 else '' }}"></td>
                             <td><input type="number" name="running_kisti_{{ c._id }}"
                                        class="ks-in running-kisti-in"
-                                       readonly title="স্বয়ংক্রিয়ভাবে গণনা হয় — সাপ্তাহিক নগদ আদায়ের ঘরে টাকা বসালেই কিউমুলেটিভ যোগ হয়"
+                                       readonly title="Nil করার সময় পপ-আপে 'এই মাসে কয়টা তারিখে আদায় হয়েছে' সংখ্যাটি এতে যোগ হয়"
                                        value="{{ col.get('running_kisti') if col.get('running_kisti') != 0 else '' }}"></td>
                             <td id="remain_kisti_{{ c._id }}" class="td-remain"></td>
 
@@ -614,26 +614,11 @@ function calculateRow(cid, row) {
         if (paidKInput) paidKInput.value = paidK > 0 ? paidK : '';
     }
 
-    // ── চলমান সপ্তাহ — কিউমুলেটিভ (customer-level) কাউন্টার।
-    // সাপ্তাহিক "নগদ আদায়" (cash collection, n-in) ঘরে টাকা বসালেই (>0) এটি গণনা হয়।
-    // প্রতিবার যে কয়টি নতুন ঘরে নগদ > 0 বসানো হয়েছে (এই শীটে আগে যা ছিল তার চেয়ে বেশি),
-    // সেই পার্থক্যটুকু টোটালের সাথে যোগ হয়। Nil হলে সম্পূর্ণ ফ্রিজ। ──
-    const runningKInput     = row.querySelector('.running-kisti-in');
-    const runningBaseHolder = document.getElementById('running_kisti_base_' + cid);
-    const runningTotalHolder = document.getElementById('running_kisti_total_input_' + cid);
-    const runningBaseCollected = parseInt(runningBaseHolder?.dataset.baseCollected, 10) || 0;
-
-    if (!isNiled) {
-        let currentTouchedN = 0;
-        row.querySelectorAll('.n-in').forEach(i => {
-            if ((parseFloat(i.value) || 0) > 0) currentTouchedN++;
-        });
-        const runningDelta = currentTouchedN - runningBaseCollected; // can be negative if a value is cleared
-        const storedRunningTotal = parseFloat(runningTotalHolder?.value) || 0;
-        let runningK = storedRunningTotal + runningDelta;
-        if (runningK < 0) runningK = 0;
-        if (runningKInput) runningKInput.value = runningK > 0 ? runningK : '';
-    }
+    // ── চলমান কিস্তি — এখন আর সাপ্তাহিক ঘর থেকে স্বয়ংক্রিয়ভাবে গণনা হয় না।
+    // শুধুমাত্র "Nil" করার সময় পপ-আপে দেওয়া "এই মাসে কয়টা তারিখে আদায় হয়েছে"
+    // সংখ্যাটি চলমান কিস্তির সাথে যোগ হয় (performNilAction দেখুন)।
+    // তাই এখানে calculateRow চলমান কিস্তির মান স্পর্শ করে না — DB থেকে আসা /
+    // পপ-আপে যোগ হওয়া মানটিই বহাল থাকে। ──
 
     // বাকি সপ্তাহ
     const totalK = parseFloat(row.querySelector('.total-kisti-in')?.value) || 0;
@@ -684,7 +669,7 @@ function freezeAutomatedFields(row) {
 //  NIL ACTION — transfer balance to pre-due, clear weekly fields,
 //  permanently nil all currently-active extra products
 // ─────────────────────────────────────────────────────────────────
-function performNilAction(cid, row) {
+function performNilAction(cid, row, runningAddCount) {
   try {
     // Sum of active + checked extra products
     let selectedExtraValue = 0;
@@ -719,11 +704,15 @@ function performNilAction(cid, row) {
     const paidTotalHolder = document.getElementById('paid_kisti_total_input_' + cid);
     if (paidTotalHolder) paidTotalHolder.value = finalPaidK;
 
-    // ── চলমান সপ্তাহ — Nil মুহূর্তে যা গণনা হয়েছিল তা চূড়ান্তভাবে টোটালে ফিক্স হয়ে যাবে ──
+    // ── চলমান কিস্তি — Nil-এর সময় পপ-আপে দেওয়া তারিখ-সংখ্যা পূর্বের মানের সাথে যোগ হবে।
+    // (আদায়কৃত কিস্তির মত সাপ্তাহিক ঘর থেকে স্বয়ংক্রিয়ভাবে গণনা হয় না।) ──
     const runningKInput = row.querySelector('.running-kisti-in');
-    const finalRunningK = parseFloat(runningKInput?.value) || 0;
+    const prevRunningK  = parseFloat(runningKInput?.value) || 0;
+    const addRunningK   = parseFloat(runningAddCount) || 0;
+    const newRunningK   = prevRunningK + addRunningK;
+    if (runningKInput) runningKInput.value = newRunningK > 0 ? newRunningK : '';
     const runningTotalHolder = document.getElementById('running_kisti_total_input_' + cid);
-    if (runningTotalHolder) runningTotalHolder.value = finalRunningK;
+    if (runningTotalHolder) runningTotalHolder.value = newRunningK;
 
     // Clear weekly inputs
     row.querySelectorAll('.n-in, .m-in, .d-in, .r-in').forEach(i => i.value = '');
@@ -761,9 +750,26 @@ function performNilAction(cid, row) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────
+//  RUNNING-COUNT PROMPT — Nil করার সময় জিজ্ঞাসা: এই মাসে কয়টা তারিখে
+//  আদায় হয়েছে? রিটার্ন: একটি অঋণাত্মক সংখ্যা (ফাঁকা/ভুল হলে 0), অথবা
+//  null যদি ব্যবহারকারী Cancel চাপে (তখন পুরো Nil বাতিল হবে)।
+// ─────────────────────────────────────────────────────────────────
+function askRunningCount(label) {
+    const msg = (label ? (label + ' — ') : '')
+        + 'এই মাসে কয়টা তারিখে আদায় হয়েছে?\n(এই সংখ্যাটি চলমান কিস্তির সাথে যোগ হবে। আদায় না হলে 0 দিন।)';
+    const raw = prompt(msg, '');
+    if (raw === null) return null;                 // Cancel → পুরো Nil বাতিল
+    const n = parseInt(raw, 10);
+    if (isNaN(n) || n < 0) return 0;               // ফাঁকা/ভুল ইনপুট → 0 যোগ
+    return n;
+}
+
 function handleSingleNil(cid, row) {
     if (!confirm('সিলেক্ট করা অতিরিক্ত পণ্যের মূল্য জেরে পাঠাতে চান?')) return;
-    const ok = performNilAction(cid, row);
+    const cnt = askRunningCount();
+    if (cnt === null) return;                      // ব্যবহারকারী বাতিল করেছে
+    const ok = performNilAction(cid, row, cnt);
     if (!ok) return; // বাতিল বা ত্রুটি হলে সেভ হবে না
     // Nil করার সাথে সাথে ডাটাবেজে স্বয়ংক্রিয়ভাবে সেভ হয়ে যাবে
     const form = document.getElementById('main-form');
@@ -772,9 +778,12 @@ function handleSingleNil(cid, row) {
 
 function handleAllNil() {
     if (!confirm('সবার ব্যালেন্স জেরে পাঠাতে চান?')) return;
+    // অল-নিল: একবারই জিজ্ঞাসা — এই সংখ্যাটি সব সদস্যের চলমান কিস্তিতে যোগ হবে।
+    const cnt = askRunningCount('সব সদস্যের জন্য');
+    if (cnt === null) return;                      // ব্যবহারকারী বাতিল করেছে
     let anySucceeded = false;
     document.querySelectorAll('tr[data-cid]').forEach(row => {
-        const ok = performNilAction(row.dataset.cid, row);
+        const ok = performNilAction(row.dataset.cid, row, cnt);
         if (ok) anySucceeded = true;
     });
     // অন্তত একটি সারিতে Nil সফল হলে একবারেই ডাটাবেজে স্বয়ংক্রিয়ভাবে সেভ হয়ে যাবে
