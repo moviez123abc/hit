@@ -20,13 +20,13 @@
                 </p>
             </div>
             <div class="ks-header-actions">
-                <button type="button" class="ks-btn ks-btn-danger" onclick="handleAllNil()">
+                <button type="button" class="ks-btn ks-btn-danger" data-action="all-nil">
                     <i class="fas fa-undo-alt"></i> অল নিল
                 </button>
                 <a href="/print_kisti/{{ sheet._id|string }}" target="_blank" class="ks-btn ks-btn-success">
                     <i class="fas fa-print"></i> প্রিন্ট
                 </a>
-                <button type="button" class="ks-btn ks-btn-warning" onclick="document.getElementById('main-form').submit()">
+                <button type="button" class="ks-btn ks-btn-warning" data-action="quick-save" onclick="document.getElementById('main-form').submit()">
                     <i class="fas fa-save"></i> দ্রুত সেভ
                 </button>
             </div>
@@ -99,11 +99,22 @@
                             <input type="hidden" name="total_m_balance_{{ c._id }}"
                                    id="total_m_balance_input_{{ c._id }}"
                                    value="{{ col.get('total_m_balance', '') }}">
+                            {% set price_list_base = col.get('price_data', []) %}
+                            <input type="hidden"
+                                   id="paid_kisti_base_{{ c._id }}"
+                                   data-base-collected="{{ price_list_base | map('float') | select('gt', 0) | list | length }}"
+                                   data-base-touched="{{ price_list_base | length }}"
+                                   value="">
+                            <input type="hidden" name="paid_kisti_total_{{ c._id }}"
+                                   id="paid_kisti_total_input_{{ c._id }}"
+                                   value="{{ c.paid_kisti if c.paid_kisti else 0 }}">
+                            <input type="hidden" name="running_kisti_total_{{ c._id }}"
+                                   id="running_kisti_total_input_{{ c._id }}"
+                                   value="{{ col.get('running_kisti') if col.get('running_kisti') else 0 }}">
 
                             {# ── Action cell ── #}
                             <td class="td-action">
-                                <button type="button" class="ks-nil-btn"
-                                        onclick="handleSingleNil('{{ c._id }}', this.closest('tr'))">
+                                <button type="button" class="ks-nil-btn" data-action="single-nil">
                                     Nil
                                 </button>
                             </td>
@@ -201,11 +212,11 @@
                                        value="{{ c.total_kisti if c.total_kisti != 0 else '' }}"></td>
                             <td><input type="number" name="paid_kisti_{{ c._id }}"
                                        class="ks-in paid-kisti-in"
-                                       readonly title="স্বয়ংক্রিয়ভাবে গণনা হয় — সাপ্তাহিক নগদ আদায়ের ঘর অনুযায়ী"
+                                       readonly title="স্বয়ংক্রিয়ভাবে গণনা হয় — সাপ্তাহিক মূল্য আদায়ের ঘরে টাকা বসালেই কিউমুলেটিভ যোগ হয়"
                                        value="{{ c.paid_kisti if c.paid_kisti != 0 else '' }}"></td>
                             <td><input type="number" name="running_kisti_{{ c._id }}"
                                        class="ks-in running-kisti-in"
-                                       readonly title="স্বয়ংক্রিয়ভাবে গণনা হয় — সাপ্তাহিক নগদ আদায়ের ঘর অনুযায়ী"
+                                       readonly title="Nil করার সময় জিজ্ঞাসিত সংখ্যা অনুযায়ী স্বয়ংক্রিয়ভাবে যোগ হয়"
                                        value="{{ col.get('running_kisti') if col.get('running_kisti') != 0 else '' }}"></td>
                             <td id="remain_kisti_{{ c._id }}" class="td-remain"></td>
 
@@ -479,6 +490,28 @@ body { padding-bottom: 90px; background: #f1f5f9; }
 ════════════════════════════════════════════════════════════════ #}
 <script>
 // ─────────────────────────────────────────────────────────────────
+//  ERROR VISIBILITY — কোনো জাভাস্ক্রিপ্ট সমস্যা হলে স্ক্রিনে স্পষ্ট দেখাবে
+//  (নীরবে ফেইল করবে না, যাতে অটোমেশন কাজ না করলে সাথে সাথে বোঝা যায়)
+// ─────────────────────────────────────────────────────────────────
+function showAutomationError(msg) {
+    let banner = document.getElementById('ks-auto-error-banner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'ks-auto-error-banner';
+        banner.style.cssText = 'position:sticky;top:0;z-index:9999;background:#fee2e2;color:#991b1b;border:2px solid #dc2626;padding:10px 16px;margin-bottom:10px;border-radius:8px;font-size:13px;font-weight:700;';
+        const wrap = document.querySelector('.container-fluid.ks-page');
+        if (wrap) wrap.insertBefore(banner, wrap.firstChild);
+    }
+    banner.textContent = '⚠ অটোমেশনে সমস্যা হয়েছে: ' + msg;
+    banner.style.display = 'block';
+}
+
+window.addEventListener('error', function(e) {
+    showAutomationError(e.message + ' (লাইন: ' + e.lineno + ')');
+    console.error('GLOBAL JS ERROR:', e.message, e.filename, e.lineno, e.colno, e.error);
+});
+
+// ─────────────────────────────────────────────────────────────────
 //  UTILITIES
 // ─────────────────────────────────────────────────────────────────
 
@@ -532,6 +565,7 @@ function applyNiledVisuals(cid, row, idx) {
 //  CALCULATE ROW  — totals, balances, extra sum
 // ─────────────────────────────────────────────────────────────────
 function calculateRow(cid, row) {
+  try {
     // চার্জ সহ মূল্য
     const mainPrice  = parseFloat(row.querySelector('.price-calc')?.value)  || 0;
     const mainProfit = parseFloat(row.querySelector('.profit-calc')?.value) || 0;
@@ -552,26 +586,34 @@ function calculateRow(cid, row) {
     // nil হয়ে গেলে এই কলামগুলো আর স্বয়ংক্রিয়ভাবে পরিবর্তন হবে না (ফ্রিজড)
     const isNiled = (document.getElementById('nil_status_input_' + cid)?.value === 'true');
 
-    // ── আদায়কৃত সপ্তাহ — সাপ্তাহিক নগদ আদায়ের যে কয়টি ঘরে টাকা বসানো হয়েছে (>0) তার সংখ্যা ──
-    const paidKInput = row.querySelector('.paid-kisti-in');
-    let paidK = parseFloat(paidKInput?.value) || 0;
+    // ── আদায়কৃত সপ্তাহ — কিউমুলেটিভ (customer-level) কাউন্টার।
+    // সাপ্তাহিক "মূল্য আদায়" (price collection, m-in) ঘরে টাকা বসালেই (>0) এটি গণনা হয়।
+    // প্রতিবার যে কয়টি নতুন ঘরে মূল্য > 0 বসানো হয়েছে (এই শীটে আগে যা ছিল তার চেয়ে বেশি),
+    // সেই পার্থক্যটুকু টোটালের সাথে যোগ হয়। Nil হলে সম্পূর্ণ ফ্রিজ। ──
+    const paidKInput  = row.querySelector('.paid-kisti-in');
+    const baseHolder  = document.getElementById('paid_kisti_base_' + cid);
+    const totalHolder = document.getElementById('paid_kisti_total_input_' + cid);
+    const baseCollected = parseInt(baseHolder?.dataset.baseCollected, 10) || 0;
+    let paidK = parseFloat(totalHolder?.value) || 0;
+
     if (!isNiled) {
-        let collectedWeeks = 0;
-        row.querySelectorAll('.n-in').forEach(i => {
-            if ((parseFloat(i.value) || 0) > 0) collectedWeeks++;
+        let currentCollected = 0;
+        row.querySelectorAll('.m-in').forEach(i => {
+            if ((parseFloat(i.value) || 0) > 0) currentCollected++;
         });
-        paidK = collectedWeeks;
-        if (paidKInput) paidKInput.value = collectedWeeks > 0 ? collectedWeeks : '';
+        const delta = currentCollected - baseCollected; // can be negative if a value is cleared
+        const storedTotal = parseFloat(totalHolder?.value) || 0;
+        paidK = storedTotal + delta;
+        if (paidK < 0) paidK = 0;
+        if (paidKInput) paidKInput.value = paidK > 0 ? paidK : '';
     }
 
-    // ── চলমান সপ্তাহ — এই শীটে যে কয়টি সাপ্তাহিক ঘর স্পর্শ করা হয়েছে (খালি না থাকা) তার সংখ্যা ──
+    // ── চলমান সপ্তাহ — শুধুমাত্র Nil-এর সময় ইউজারের টাইপ করা সংখ্যা (৪ বা ৫ ইত্যাদি)
+    // টোটালের সাথে যোগ হয়। সাধারণ টাইপিং এ এটি পরিবর্তন হয় না। ──
     const runningKInput = row.querySelector('.running-kisti-in');
-    if (!isNiled) {
-        let touchedWeeks = 0;
-        row.querySelectorAll('.n-in').forEach(i => {
-            if (i.value !== '') touchedWeeks++;
-        });
-        if (runningKInput) runningKInput.value = touchedWeeks > 0 ? touchedWeeks : '';
+    if (runningKInput && !runningKInput.value) {
+        const storedRunning = parseFloat(document.getElementById('running_kisti_total_input_' + cid)?.value) || 0;
+        runningKInput.value = storedRunning > 0 ? storedRunning : '';
     }
 
     // বাকি সপ্তাহ
@@ -601,6 +643,10 @@ function calculateRow(cid, row) {
         if (balInput) balInput.value = outstandingM || '';
     }
     setDisplay('bal_m_' + cid, (totalM + disc) || '');
+  } catch (err) {
+    console.error('calculateRow() ত্রুটি (cid=' + cid + '):', err);
+    showAutomationError('হিসাব করতে সমস্যা হয়েছে — কনসোল দেখুন (F12)। ত্রুটি: ' + err.message);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -620,6 +666,12 @@ function freezeAutomatedFields(row) {
 //  permanently nil all currently-active extra products
 // ─────────────────────────────────────────────────────────────────
 function performNilAction(cid, row) {
+  try {
+    // ── নিল করার সময় এই মাসে কয়টি কিস্তি কালেক্ট হলো (চলমান সপ্তাহ) তা জিজ্ঞেস করা হবে ──
+    let runningInput = prompt('এই মাসে কয়টি কিস্তি কালেক্ট করা হয়েছে? (চলমান সপ্তাহ — যেমন: 4 অথবা 5)', '');
+    if (runningInput === null) return false; // ইউজার বাতিল করলে Nil অ্যাকশনও বাতিল হবে
+    const runningAdd = parseFloat(runningInput) || 0;
+
     // Sum of active + checked extra products
     let selectedExtraValue = 0;
     row.querySelectorAll('.ep-cb-row').forEach(epRow => {
@@ -646,6 +698,20 @@ function performNilAction(cid, row) {
     setDisplay('total_m_' + cid, newOutstandingM || '');
     const balInput = document.getElementById('total_m_balance_input_' + cid);
     if (balInput) balInput.value = newOutstandingM || '';
+
+    // ── আদায়কৃত সপ্তাহ — Nil মুহূর্তে যা গণনা হয়েছিল তা চূড়ান্তভাবে টোটালে ফিক্স হয়ে যাবে ──
+    const paidKInput = row.querySelector('.paid-kisti-in');
+    const finalPaidK = parseFloat(paidKInput?.value) || 0;
+    const paidTotalHolder = document.getElementById('paid_kisti_total_input_' + cid);
+    if (paidTotalHolder) paidTotalHolder.value = finalPaidK;
+
+    // ── চলমান সপ্তাহ — Nil মুহূর্তে জিজ্ঞাসিত সংখ্যাটি টোটালের সাথে যোগ হয়ে চূড়ান্তভাবে ফিক্স হবে ──
+    const runningKInput = row.querySelector('.running-kisti-in');
+    const runningTotalHolder = document.getElementById('running_kisti_total_input_' + cid);
+    const prevRunningTotal = parseFloat(runningTotalHolder?.value) || 0;
+    const newRunningTotal = prevRunningTotal + runningAdd;
+    if (runningTotalHolder) runningTotalHolder.value = newRunningTotal;
+    if (runningKInput) runningKInput.value = newRunningTotal > 0 ? newRunningTotal : '';
 
     // Clear weekly inputs
     row.querySelectorAll('.n-in, .m-in, .d-in, .r-in').forEach(i => i.value = '');
@@ -675,26 +741,77 @@ function performNilAction(cid, row) {
 
     saveNiledArr(cid, niledArr);
     calculateRow(cid, row);
+    return true;
+  } catch (err) {
+    console.error('performNilAction() ত্রুটি (cid=' + cid + '):', err);
+    showAutomationError('Nil করতে সমস্যা হয়েছে — কনসোল দেখুন (F12)। ত্রুটি: ' + err.message);
+    return false;
+  }
 }
 
 function handleSingleNil(cid, row) {
     if (!confirm('সিলেক্ট করা অতিরিক্ত পণ্যের মূল্য জেরে পাঠাতে চান?')) return;
-    performNilAction(cid, row);
+    const ok = performNilAction(cid, row);
+    if (!ok) return; // বাতিল বা ত্রুটি হলে সেভ হবে না
+    // Nil করার সাথে সাথে ডাটাবেজে স্বয়ংক্রিয়ভাবে সেভ হয়ে যাবে
+    const form = document.getElementById('main-form');
+    if (form) form.submit();
 }
 
 function handleAllNil() {
     if (!confirm('সবার ব্যালেন্স জেরে পাঠাতে চান?')) return;
+    let anySucceeded = false;
     document.querySelectorAll('tr[data-cid]').forEach(row => {
-        performNilAction(row.dataset.cid, row);
+        const ok = performNilAction(row.dataset.cid, row);
+        if (ok) anySucceeded = true;
     });
+    // অন্তত একটি সারিতে Nil সফল হলে একবারেই ডাটাবেজে স্বয়ংক্রিয়ভাবে সেভ হয়ে যাবে
+    if (anySucceeded) {
+        const form = document.getElementById('main-form');
+        if (form) form.submit();
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────
-//  LIVE INPUT LISTENER
+//  LIVE INPUT LISTENER  — covers both 'input' (typing) and 'change'
+//  (checkboxes / date pickers) so নগদ আদায় ঘরে টাকা বসালেই সাথে সাথে
+//  আদায়কৃত সপ্তাহ / মোট মূল্য আপডেট হয়।
 // ─────────────────────────────────────────────────────────────────
-document.addEventListener('input', e => {
+function handleLiveCalc(e) {
     const tr = e.target.closest('tr[data-cid]');
     if (tr) calculateRow(tr.dataset.cid, tr);
+}
+document.addEventListener('input', handleLiveCalc);
+document.addEventListener('change', handleLiveCalc);
+
+// ─────────────────────────────────────────────────────────────────
+//  CLICK DELEGATION — primary mechanism for Nil / All-Nil buttons.
+//  এটি inline onclick এর পাশাপাশি কাজ করে, যাতে কোনো ব্রাউজার/ওয়েবভিউ
+//  inline onclick আটকে দিলেও Nil বাটন কাজ করে।
+// ─────────────────────────────────────────────────────────────────
+document.addEventListener('click', function(e) {
+    const nilBtn = e.target.closest('[data-action="single-nil"]');
+    if (nilBtn) {
+        const row = nilBtn.closest('tr[data-cid]');
+        if (row) {
+            try {
+                handleSingleNil(row.dataset.cid, row);
+            } catch (err) {
+                console.error('Nil বাটনে ত্রুটি:', err);
+                showAutomationError('Nil করতে সমস্যা হয়েছে: ' + err.message);
+            }
+        }
+        return;
+    }
+    const allNilBtn = e.target.closest('[data-action="all-nil"]');
+    if (allNilBtn) {
+        try {
+            handleAllNil();
+        } catch (err) {
+            console.error('অল নিল-এ ত্রুটি:', err);
+            showAutomationError('অল নিল করতে সমস্যা হয়েছে: ' + err.message);
+        }
+    }
 });
 
 // ─────────────────────────────────────────────────────────────────
@@ -728,6 +845,7 @@ window.addEventListener('DOMContentLoaded', () => {
         // Calculate row totals
         calculateRow(cid, row);
     });
+    console.log('✓ কিস্তি শীট অটোমেশন স্ক্রিপ্ট লোড সম্পন্ন — ' + document.querySelectorAll('tr[data-cid]').length + ' টি সারি পাওয়া গেছে।');
 });
 </script>
 {% endblock %}
